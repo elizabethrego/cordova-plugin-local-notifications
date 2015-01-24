@@ -112,6 +112,15 @@
 		<source-file src="src/android/notification/NotificationWrapper.java" target-dir="src/de/appplant/cordova/plugin/notification" />
     </platform>
 
+	<!-- windows -->
+    <platform name="windows">
+        <js-module src="src/windows/LocalNotificationProxy.js" name="LocalNotificationProxy">
+            <merges target="" />
+        </js-module>
+    </platform>
+	
+	
+	
     <!-- wp8 -->
 <!--     <platform name="wp8">
         <config-file target="config.xml" parent="/*">
