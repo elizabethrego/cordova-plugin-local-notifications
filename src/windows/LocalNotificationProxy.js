@@ -20,12 +20,85 @@
 */
 
     var Notifications = Windows.UI.Notifications;
+    var applicationData = Windows.Storage.ApplicationData.current;
+    var localSettings = applicationData.localSettings;
 
-    test = function(){
-        console.log("test");
-    };
+    // Cordova exec functions--------------------------------------------------------------------------
+ module.exports = {
 
-    schedule = function (title, message, dueTime, idNumber) {
+    add: function (success, error, args) {
+        for (var i = 0, len = args.length; i < len; i++) {
+            var arguments = args[i];
+
+            //get Notification-Content
+            var title;
+            if (arguments.title) {
+                title = arguments.title;
+            }
+            var message;
+            if (arguments.message) {
+                message = arguments.message;
+            }
+            var dueTime = new Date();
+            if (arguments.date) {
+                dueTime = new Date((arguments.date) * 1000 + 500);
+            }
+            var idNumber;
+            if (arguments.id) {
+                idNumber = arguments.id;
+            } else {
+                idNumber = "0";
+            }
+            arguments.id = idNumber;
+            var repeat;
+            var interval = 0;
+            if (arguments.repeat) {
+                repeat = arguments.repeat;
+                if (repeat === 'minutely') {
+                    interval = 60000;
+                } else if (repeat === 'hourly') {
+                    interval = 360000;
+                } else {
+                    interval = parseInt(repeat) * 60000;
+                }
+
+            }
+            //persist notification
+            persist(arguments);
+            //schedule notification
+            localSchedule(title, message, dueTime, idNumber,interval);
+        }
+        success();
+    },
+
+    cancel: function (success, error, args) {
+        localCancel(args);
+        success();
+    },
+
+    cancelAll: function (success, error, args) {
+        localCancelAll(args);
+        success();
+    },
+
+    clear: function(success, error, args){
+        localClear(args);
+        success();
+    },
+
+    clearAll: function (success, error, args) {
+        localClearAll();
+        success();
+    }
+
+};
+    require("cordova/exec/proxy").add("LocalNotification", module.exports);
+
+    // local functions----------------------------------------------------------------------
+
+    localSchedule = function (title, message, dueTime, idNumber, repeatInterval) {
+        var now = new Date();
+        var interval = dueTime - now;
         // Scheduled toasts use the same toast templates as all other kinds of toasts.
         var toastXmlString = "<toast>"
             + "<visual version='2'>"
@@ -36,83 +109,156 @@
             + "</visual>"
             + "</toast>";
 
-       toastXmlString = toastXmlString.replace("updateString", title);
+        toastXmlString = toastXmlString.replace("updateString", title);
 
         var toastDOM = new Windows.Data.Xml.Dom.XmlDocument();
         try {
             toastDOM.loadXml(toastXmlString);
             var toast;
-            toast = new Notifications.ScheduledToastNotification(toastDOM, dueTime);
-            toast.id = "Toast" + idNumber;
+            if (repeatInterval != 0 && repeatInterval < 360001 && repeatInterval > 59999 ) {
+                toast = new Notifications.ScheduledToastNotification(toastDOM, dueTime, repeatInterval, 5);
+            } else {
+                toast = new Notifications.ScheduledToastNotification(toastDOM, dueTime);
+            }
+            toast.id = "" + idNumber;
+            toast.tag = "Toast" + idNumber;
+
 
             Notifications.ToastNotificationManager.createToastNotifier().addToSchedule(toast);
+            plugin.notification.local.onadd();
             console.log("Scheduled a toast with ID: " + toast.id, "sample", "status");
+            WinJS.Promise.timeout(interval).then(
+                function (complete) {
+                    // code that executes after the timeout has completed.
+                    plugin.notification.local.ontrigger();
+                },
+                function (error) {
+                    // code that takes care of the canceled promise. 
+                    // Note that .then rather than .done should be used in this case.
+                    console.log("Error");
+                });
         } catch (e) {
             console.log("Error loading the xml, check for invalid characters in the input", "sample", "error");
         }
 
     };
 
-    module.exports = {
+    localCancel = function (args) {
+        for (var id in args) {
+            var itemId = "" + id;
+            var scheduled;
+            var notifier;
+            var history = Windows.UI.Notifications.ToastNotificationManager.history;
+            notifier = Notifications.ToastNotificationManager.createToastNotifier();
+            scheduled = notifier.getScheduledToastNotifications();
 
-    add: function (success, error, args) {
-        console.log("test" + args);
 
-        test();
-        var arguments = args[0];
-
-        var title;
-        if (arguments.title) {
-            title = arguments.title;
-        }
-        var message;
-        if (arguments.message) {
-            message = arguments.message;
-        }
-        var date;
-        if (arguments.date) {
-            date = arguments.date;
-        }
-        var id;
-        if (arguments.date) {
-            id = arguments.id;
-        } else {
-            id = "0";
-        }
-
-        var dueTimeInSeconds = 8;
-
-        // Use a Javascript Date object to specify the time the toast should be delivered.
-        var currentTime = new Date();
-        var dueTime = new Date(currentTime.getTime() + dueTimeInSeconds * 1000);
-        var idNumber = id;
-
-        schedule(title, message, dueTime, idNumber);
-
-        success();
-    },
-
-    cancel: function (success, error, args) {
-        var id = args[0];
-        console.log("test");
-        var itemId ="Toast12345";
-        var scheduled;
-        var notifier;
-        notifier = Notifications.ToastNotificationManager.createToastNotifier();
-        scheduled = notifier.getScheduledToastNotifications();
-        
-
-        for (var i = 0, len = scheduled.length; i < len; i++) {
-            if (scheduled[i].id === itemId) {
-                notifier.removeFromSchedule(scheduled[i]);
-                notifier.hide(scheduled[i]);
+            for (var i = 0, len = scheduled.length; i < len; i++) {
+                if (scheduled[i].id === itemId) {
+                    notifier.removeFromSchedule(scheduled[i]);
+                    console.log("canceled " + itemId);
+                }
             }
+            history.remove("Toast" + itemId);
+            unpersist(id);
         }
-        console.log("canceled" + itemId);
-        success();
+    };
+
+    localCancelAll = function () {
+        var notifier = Notifications.ToastNotificationManager.createToastNotifier();
+        var history = Windows.UI.Notifications.ToastNotificationManager.history;
+        try{
+            var scheduled = notifier.getScheduledToastNotifications();
+
+
+            for (var i = 0, len = scheduled.length; i < len; i++) {
+                notifier.removeFromSchedule(scheduled[i]);
+                console.log("canceled " + scheduled[i].id);
+            }
+        } catch (e) {
+            console.log("No Notification scheduled");
+        }
+        var persistedIds = getSavedIds();
+        for (var id in persistedIds) {
+            unpersist(id);
+        }
+        history.clear();
+
+    };
+
+    localClear = function (args) {
+        for (var id in args) {
+            Windows.UI.Notifications.ToastNotificationManager.history.remove("Toast" + id);
+            unpersist(id);
+        }
+    };
+
+    localClearAll = function () {
+        Windows.UI.Notifications.ToastNotificationManager.history.clear();
+        var persistedIds = getSavedIds();
+    };
+
+
+
+    //persist-methods---------------------------------------------------------------------------
+    getFromSettings = function (id) {
+        var value = localSettings.values["Toast" + id];
+        if (!value) {
+            return null;
+        } else {
+            return JSON.parse(value);
+        }
     }
 
-};
+    persist = function (arguments) {
+        localSettings.values["Toast" + arguments.id] = JSON.stringify(arguments);
+        saveId(arguments.id);
+    };
 
+    unpersist = function (id) {
+        localSettings.values.remove("Toast" + id);
+        removeId(id);
+    };
 
-require("cordova/exec/proxy").add("LocalNotification", module.exports);
+    saveId = function (id) {
+        var temp = localSettings.values["persistedIds"];
+        var ids;
+        if (!temp) {
+            ids = new Array();
+        } else {
+            ids = JSON.parse(temp);
+        }
+        ids.push(id);
+
+        localSettings.values["persistedIds"] = JSON.stringify(ids);
+    };
+
+    removeId = function (id) {
+        var temp = localSettings.values["persistedIds"];
+        var ids;
+        if (!temp) {
+            return;
+        } else {
+            ids = JSON.parse(temp);
+        }
+        for (var i = 0; i < ids.length ; i++) {
+            if (ids[i] === id) {
+                ids.splice(i, 1);
+                break;
+            }
+        }
+
+        localSettings.values["persistedIds"] = JSON.stringify(ids);
+    };
+
+    getSavedIds = function () {
+        var temp = localSettings.values["persistedIds"];
+        var ids;
+        if (!temp) {
+            ids = new Array();
+        } else {
+            ids = JSON.parse(temp);
+        }
+        return ids;
+
+    };
