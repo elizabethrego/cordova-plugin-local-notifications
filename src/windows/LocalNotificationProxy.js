@@ -19,23 +19,34 @@
     under the License.
 */
 
+
     var Notifications = Windows.UI.Notifications;
     var applicationData = Windows.Storage.ApplicationData.current;
     var localSettings = applicationData.localSettings;
 
+    document.addEventListener('deviceready', function () {
+        console.log("test");
+        //fireEvents 
+        var idsToTrigger = getIdsForOntrigger();
+        for (var i = 0, len = idsToTrigger.length; i < len; i++) {
+            plugin.notification.local.ontrigger();
+            saveId(idsToTrigger[i]);
+        }
+    });
+
     // Cordova exec functions--------------------------------------------------------------------------
- module.exports = {
+    module.exports = {
 
     add: function (success, error, args) {
         for (var i = 0, len = args.length; i < len; i++) {
             var arguments = args[i];
 
             //get Notification-Content
-            var title;
+            var title = "Notification";
             if (arguments.title) {
                 title = arguments.title;
             }
-            var message;
+            var message = "";
             if (arguments.message) {
                 message = arguments.message;
             }
@@ -61,18 +72,17 @@
                 } else {
                     interval = parseInt(repeat) * 60000;
                 }
-
             }
-            //persist notification
-            persist(arguments);
+            //Cancel old notification if it's already existing
+            localCancel([idNumber], false);
             //schedule notification
-            localSchedule(title, message, dueTime, idNumber,interval);
+            localSchedule(title, message, dueTime, idNumber,interval,arguments);
         }
         success();
     },
 
     cancel: function (success, error, args) {
-        localCancel(args);
+        localCancel(args,true);
         success();
     },
 
@@ -89,6 +99,54 @@
     clearAll: function (success, error, args) {
         localClearAll();
         success();
+    },
+
+    getAll: function (success, error, args) {
+        var all = localGetAll(args);
+        success(all);
+    },
+
+    getScheduled: function (success, error, args) {
+        var scheduled = localGetScheduled();
+        success(scheduled);
+    },
+
+    getTriggered: function (success, error, args) {
+        var triggered = localGetTriggered();
+        success(triggered);
+    },
+
+    getAllIds: function (success, error, args) {
+        var allIds = localGetAllIds();
+        success(allIds);
+    },
+
+    getScheduledIds: function (success, error, args) {
+        var scheduledIds = localGetScheduledIds();
+        success(scheduledIds);
+    },
+
+    getTriggeredIds: function (success, error, args) {
+        var triggeredIds = localGetTriggeredIds();
+        success(triggeredIds);
+    },
+
+    isPersisted: function (success, error, args) {
+        var id = args[0];
+        var isPersisted = localIsPersisted(id);
+        success(isPersisted);
+    },
+
+    isScheduled: function (success, error, args) {
+        var id = args[0];
+        var isScheduled = localIsScheduled(id);
+        success(isScheduled);
+    },
+
+    isTriggered: function (success, error, args) {
+        var id = args[0];
+        var isTriggered = localIsTriggered(id);
+        success(isTriggered);
     }
 
 };
@@ -96,24 +154,27 @@
 
     // local functions----------------------------------------------------------------------
 
-    localSchedule = function (title, message, dueTime, idNumber, repeatInterval) {
+    localSchedule = function (title, message, dueTime, idNumber, repeatInterval,jsonObject) {
         var now = new Date();
-        var interval = dueTime - now;
+        var interval = dueTime - now; 
         // Scheduled toasts use the same toast templates as all other kinds of toasts.
         var toastXmlString = "<toast>"
             + "<visual version='2'>"
             + "<binding template='ToastText02'>"
-            + "<text id='2'>" + title + "</text>"
-            + "<text id='1'>" + message + "</text>"
+            + "<text id='2'>" + message + "</text>"
+            + "<text id='1'>" + title + "</text>"
             + "</binding>"
             + "</visual>"
+            + "<json>" + JSON.stringify(jsonObject)  +"</json>"
             + "</toast>";
 
-        toastXmlString = toastXmlString.replace("updateString", title);
+//        toastXmlString = toastXmlString.replace("updateString", title);
 
         var toastDOM = new Windows.Data.Xml.Dom.XmlDocument();
         try {
             toastDOM.loadXml(toastXmlString);
+
+            //original Notification
             var toast;
             if (repeatInterval != 0 && repeatInterval < 360001 && repeatInterval > 59999 ) {
                 toast = new Notifications.ScheduledToastNotification(toastDOM, dueTime, repeatInterval, 5);
@@ -123,18 +184,36 @@
             toast.id = "" + idNumber;
             toast.tag = "Toast" + idNumber;
 
-
             Notifications.ToastNotificationManager.createToastNotifier().addToSchedule(toast);
+
+            //backup Notification
+            var backup;
+            var ten_years_later = new Date(dueTime.getTime() + 315360000000);
+            if (repeatInterval != 0 && repeatInterval < 360001 && repeatInterval > 59999) {
+                backup = new Notifications.ScheduledToastNotification(toastDOM, ten_years_later, repeatInterval, 5);
+            } else {
+                backup = new Notifications.ScheduledToastNotification(toastDOM, ten_years_later);
+            }
+            backup.id = "" + idNumber+ "-2";
+            backup.tag = "Toast" + idNumber;
+
+            Notifications.ToastNotificationManager.createToastNotifier().addToSchedule(backup);
+
+            //Add-Event
             plugin.notification.local.onadd();
-            console.log("Scheduled a toast with ID: " + toast.id, "sample", "status");
+            console.log("Scheduled a toast with ID: " + toast.id);
+
+            //Trigger-Event
             WinJS.Promise.timeout(interval).then(
                 function (complete) {
-                    // code that executes after the timeout has completed.
-                    plugin.notification.local.ontrigger();
+                    if (localIsPersisted(idNumber)) {
+                        //save ID to know, that onTrigger event is already fired
+                        saveId(idNumber);
+                        //fire ontrigger-Event
+                        plugin.notification.local.ontrigger();
+                    }
                 },
                 function (error) {
-                    // code that takes care of the canceled promise. 
-                    // Note that .then rather than .done should be used in this case.
                     console.log("Error");
                 });
         } catch (e) {
@@ -143,8 +222,10 @@
 
     };
 
-    localCancel = function (args) {
-        for (var id in args) {
+    localCancel = function (args,fireEvent) {
+        for (var i = 0, len = args.length; i < len; i++) {
+            var id = args[i];
+            removeId(id);
             var itemId = "" + id;
             var scheduled;
             var notifier;
@@ -156,70 +237,164 @@
             for (var i = 0, len = scheduled.length; i < len; i++) {
                 if (scheduled[i].id === itemId) {
                     notifier.removeFromSchedule(scheduled[i]);
-                    console.log("canceled " + itemId);
+                    if (fireEvent) {
+                        plugin.notification.local.oncancel();
+                    }
+                }
+                if (scheduled[i].id === itemId+"-2") {
+                    notifier.removeFromSchedule(scheduled[i]);
                 }
             }
-            history.remove("Toast" + itemId);
-            unpersist(id);
+            if (fireEvent) {
+                history.remove("Toast" + itemId);
+            }
         }
     };
 
     localCancelAll = function () {
-        var notifier = Notifications.ToastNotificationManager.createToastNotifier();
         var history = Windows.UI.Notifications.ToastNotificationManager.history;
-        try{
-            var scheduled = notifier.getScheduledToastNotifications();
-
-
-            for (var i = 0, len = scheduled.length; i < len; i++) {
-                notifier.removeFromSchedule(scheduled[i]);
-                console.log("canceled " + scheduled[i].id);
-            }
-        } catch (e) {
-            console.log("No Notification scheduled");
-        }
-        var persistedIds = getSavedIds();
-        for (var id in persistedIds) {
-            unpersist(id);
-        }
+        var allIds = localGetAllIds();
+        localCancel(allIds,true);
         history.clear();
-
     };
 
     localClear = function (args) {
-        for (var id in args) {
+        for (var i = 0, len = args.length; i < len; i++) {
+            var id = args[i];
+            plugin.notification.local.onclear();
             Windows.UI.Notifications.ToastNotificationManager.history.remove("Toast" + id);
-            unpersist(id);
+            if (localIsTriggered(id)) {
+                localCancel([id],false);
+            }
         }
     };
 
     localClearAll = function () {
+        var triggeredIds = localGetTriggeredIds();
+        localClear(triggeredIds);
         Windows.UI.Notifications.ToastNotificationManager.history.clear();
-        var persistedIds = getSavedIds();
     };
 
-
-
-    //persist-methods---------------------------------------------------------------------------
-    getFromSettings = function (id) {
-        var value = localSettings.values["Toast" + id];
-        if (!value) {
-            return null;
-        } else {
-            return JSON.parse(value);
+    //get-functions
+    localGetAll = function (args) {
+        var notifier = Notifications.ToastNotificationManager.createToastNotifier();
+        var scheduled = notifier.getScheduledToastNotifications();
+        var itemId;
+        var result = new Array();
+        
+        //get All
+        if (args.length == 0) {
+            for (var i = 0, len = scheduled.length; i < len; i++) {
+                if (scheduled[i].id.lastIndexOf("-2") == (scheduled[i].id.length - 2)) {
+                    result.push(JSON.parse(scheduled[i].content.lastChild.lastChild.innerText));
+                }
+            }
         }
-    }
 
-    persist = function (arguments) {
-        localSettings.values["Toast" + arguments.id] = JSON.stringify(arguments);
-        saveId(arguments.id);
+        //get Specific
+        for (var i = 0, len = args.length; i < len; i++) {
+            var id = args[i];
+            itemId = "" + id;
+
+            for (var i = 0, len = scheduled.length; i < len; i++) {
+                if (scheduled[i].id === itemId + "-2") {
+                    result.push(JSON.parse(scheduled[i].content.lastChild.lastChild.innerText));
+                }
+            }
+
+        }
+        return result;
     };
 
-    unpersist = function (id) {
-        localSettings.values.remove("Toast" + id);
-        removeId(id);
+    localGetScheduled = function () {
+        var ids = localGetScheduledIds();
+        var result = localGetAll(ids);
+        return result;
     };
 
+    localGetTriggered = function () {
+        var ids = localGetTriggeredIds();
+        var result = localGetAll(ids);
+        return result;
+    };
+
+    localGetAllIds = function () {
+        var notifier = Notifications.ToastNotificationManager.createToastNotifier();
+        var scheduled = notifier.getScheduledToastNotifications();
+        var result = new Array();
+
+        //get All
+        for (var i = 0, len = scheduled.length; i < len; i++) {
+            if (scheduled[i].id.lastIndexOf("-2") == (scheduled[i].id.length - 2)) {
+                result.push(scheduled[i].id.slice(0, (scheduled[i].id.length - 2)));
+            }
+        }
+        return result;
+    };
+
+    localGetScheduledIds = function () {
+        var notifier = Notifications.ToastNotificationManager.createToastNotifier();
+        var scheduled = notifier.getScheduledToastNotifications();
+        var result = new Array();
+
+        for (var i = 0, len = scheduled.length; i < len; i++) {
+            if (!(scheduled[i].id.lastIndexOf("-2") == (scheduled[i].id.length - 2))) {
+                result.push(scheduled[i].id);
+            }
+        }
+        return result;
+    };
+
+    localGetTriggeredIds = function () {
+        var all = localGetAllIds();
+        var scheduled = localGetScheduledIds();
+        var result = new Array();
+        for (var i = 0, lenA = all.length; i < lenA; i++) {
+            var isScheduled = false;
+            for (var j = 0, lenS = scheduled.length; j < lenS; j++) {
+                if (all[i] === scheduled[j]) {
+                    isScheduled = true;
+                }
+            }
+            if (!isScheduled){
+                result.push(all[i]);
+            }
+        }
+        return result;
+    };
+
+    localIsPersisted = function (id) {
+        var all = localGetAllIds();
+        for (var i = 0, len = all.length; i < len; i++) {
+            if (all[i] === id) {
+                return true;
+            }
+        }
+        return false;
+    };
+
+    localIsScheduled = function (id) {
+        var scheduled = localGetScheduledIds();
+        for (var i = 0, len = scheduled.length; i < len; i++) {
+            if (scheduled[i] === id) {
+                return true;
+            }
+        }
+        return false;
+    };
+
+    localIsTriggered = function (id){
+        var triggered = localGetTriggeredIds();
+        for (var i = 0, len = triggered.length; i < len; i++) {
+            if (triggered[i] === id) {
+                return true;
+            }
+        }
+        return false;
+    };
+
+
+    // Methods to save Ids of allready triggered notifications
     saveId = function (id) {
         var temp = localSettings.values["persistedIds"];
         var ids;
@@ -229,7 +404,6 @@
             ids = JSON.parse(temp);
         }
         ids.push(id);
-
         localSettings.values["persistedIds"] = JSON.stringify(ids);
     };
 
@@ -247,7 +421,6 @@
                 break;
             }
         }
-
         localSettings.values["persistedIds"] = JSON.stringify(ids);
     };
 
@@ -260,5 +433,23 @@
             ids = JSON.parse(temp);
         }
         return ids;
+    };
 
+    // Method to get all triggered Ids, that didn´t allready fired their ontrigger Event
+    getIdsForOntrigger = function () {
+        var triggered = localGetTriggeredIds();
+        var withEvent = getSavedIds();
+        var result = new Array();
+        for (var i = 0, lenT = triggered.length; i < lenT; i++) {
+            var hadEvent = false;
+            for (var j = 0, lenE = withEvent.length; j < lenE; j++) {
+                if (triggered[i] === withEvent[j]) {
+                    hadEvent = true;
+                }
+            }
+            if (!hadEvent) {
+                result.push(triggered[i]);
+            }
+        }
+        return result;
     };
