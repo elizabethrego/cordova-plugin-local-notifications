@@ -25,12 +25,16 @@
     var localSettings = applicationData.localSettings;
 
     document.addEventListener('deviceready', function () {
-        console.log("test");
-        //fireEvents 
+        //fireEvents on appstart
         var idsToTrigger = getIdsForOntrigger();
+        //allready triggered notifications
         for (var i = 0, len = idsToTrigger.length; i < len; i++) {
-            plugin.notification.local.ontrigger();
-            saveId(idsToTrigger[i]);
+            setOnTrigger(idsToTrigger[i]);
+        }
+        //scheduled notifications
+        var scheduled = localGetScheduledIds();
+        for (var i = 0, len = scheduled.length; i < len; i++) {
+            setOnTrigger(scheduled[i]);
         }
     });
 
@@ -38,46 +42,7 @@
     module.exports = {
 
     add: function (success, error, args) {
-        for (var i = 0, len = args.length; i < len; i++) {
-            var arguments = args[i];
-
-            //get Notification-Content
-            var title = "Notification";
-            if (arguments.title) {
-                title = arguments.title;
-            }
-            var message = "";
-            if (arguments.message) {
-                message = arguments.message;
-            }
-            var dueTime = new Date();
-            if (arguments.date) {
-                dueTime = new Date((arguments.date) * 1000 + 500);
-            }
-            var idNumber;
-            if (arguments.id) {
-                idNumber = arguments.id;
-            } else {
-                idNumber = "0";
-            }
-            arguments.id = idNumber;
-            var repeat;
-            var interval = 0;
-            if (arguments.repeat) {
-                repeat = arguments.repeat;
-                if (repeat === 'minutely') {
-                    interval = 60000;
-                } else if (repeat === 'hourly') {
-                    interval = 360000;
-                } else {
-                    interval = parseInt(repeat) * 60000;
-                }
-            }
-            //Cancel old notification if it's already existing
-            localCancel([idNumber], false);
-            //schedule notification
-            localSchedule(title, message, dueTime, idNumber,interval,arguments);
-        }
+        localSchedule(args);
         success();
     },
 
@@ -154,72 +119,117 @@
 
     // local functions----------------------------------------------------------------------
 
-    localSchedule = function (title, message, dueTime, idNumber, repeatInterval,jsonObject) {
-        var now = new Date();
-        var interval = dueTime - now; 
-        // Scheduled toasts use the same toast templates as all other kinds of toasts.
-        var toastXmlString = "<toast>"
-            + "<visual version='2'>"
-            + "<binding template='ToastText02'>"
-            + "<text id='2'>" + message + "</text>"
-            + "<text id='1'>" + title + "</text>"
-            + "</binding>"
-            + "</visual>"
-            + "<json>" + JSON.stringify(jsonObject)  +"</json>"
-            + "</toast>";
+    localSchedule = function (args) {
+        for (var i = 0, len = args.length; i < len; i++) {
+            var arguments = args[i];
 
-//        toastXmlString = toastXmlString.replace("updateString", title);
-
-        var toastDOM = new Windows.Data.Xml.Dom.XmlDocument();
-        try {
-            toastDOM.loadXml(toastXmlString);
-
-            //original Notification
-            var toast;
-            if (repeatInterval != 0 && repeatInterval < 360001 && repeatInterval > 59999 ) {
-                toast = new Notifications.ScheduledToastNotification(toastDOM, dueTime, repeatInterval, 5);
-            } else {
-                toast = new Notifications.ScheduledToastNotification(toastDOM, dueTime);
+            //get Notification-Content
+            var title = "Notification";
+            if (arguments.title) {
+                title = arguments.title;
             }
-            toast.id = "" + idNumber;
-            toast.tag = "Toast" + idNumber;
-
-            Notifications.ToastNotificationManager.createToastNotifier().addToSchedule(toast);
-
-            //backup Notification
-            var backup;
-            var ten_years_later = new Date(dueTime.getTime() + 315360000000);
-            if (repeatInterval != 0 && repeatInterval < 360001 && repeatInterval > 59999) {
-                backup = new Notifications.ScheduledToastNotification(toastDOM, ten_years_later, repeatInterval, 5);
-            } else {
-                backup = new Notifications.ScheduledToastNotification(toastDOM, ten_years_later);
+            var message = "";
+            if (arguments.message) {
+                message = arguments.message;
             }
-            backup.id = "" + idNumber+ "-2";
-            backup.tag = "Toast" + idNumber;
+            var dueTime = new Date();
+            if (arguments.date) {
+                dueTime = new Date((arguments.date) * 1000 + 1000);
+            }
+            var idNumber;
+            if (arguments.id) {
+                idNumber = arguments.id;
+            } else {
+                idNumber = "0";
+            }
+            arguments.id = idNumber;
+            var repeat;
+            var repeatInterval = 0;
+            if (arguments.repeat) {
+                repeat = arguments.repeat;
+                if (repeat === 'minutely') {
+                    repeatInterval = 60000;
+                } else if (repeat === 'hourly') {
+                    repeatInterval = 360000;
+                } else {
+                    repeatInterval = parseInt(repeat) * 60000;
+                }
+            }
+            console.log(JSON.stringify(arguments));
+            var sound = "";
+            console.log("" + arguments.sound);
+            console.log("" + arguments.packagename);
+            if (arguments.sound && arguments.packagename) {
+                sound = parseSound(arguments.sound, arguments.packagename);
+            }
+            //Cancel old notification if it's already existing
+            localCancel([idNumber], false);
+            var now = new Date();
+            var interval = dueTime - now;
+            // Scheduled toasts use the same toast templates as all other kinds of toasts.
+            var toastXmlString = "<toast>"
+                + "<visual version='2'>"
+                + "<binding template='ToastText02'>"
+                + "<text id='2'>" + message + "</text>"
+                + "<text id='1'>" + title + "</text>"
+                + "</binding>"
+                + "</visual>"
+                + sound
+                + "<json>" + JSON.stringify(arguments) + "</json>"
+                + "</toast>";
 
-            Notifications.ToastNotificationManager.createToastNotifier().addToSchedule(backup);
+            //        toastXmlString = toastXmlString.replace("updateString", title);
 
-            //Add-Event
-            plugin.notification.local.onadd();
-            console.log("Scheduled a toast with ID: " + toast.id);
+            var toastDOM = new Windows.Data.Xml.Dom.XmlDocument();
+            try {
+                toastDOM.loadXml(toastXmlString);
 
-            //Trigger-Event
-            WinJS.Promise.timeout(interval).then(
-                function (complete) {
-                    if (localIsPersisted(idNumber)) {
-                        //save ID to know, that onTrigger event is already fired
-                        saveId(idNumber);
-                        //fire ontrigger-Event
-                        plugin.notification.local.ontrigger();
-                    }
-                },
-                function (error) {
-                    console.log("Error");
-                });
-        } catch (e) {
-            console.log("Error loading the xml, check for invalid characters in the input", "sample", "error");
+                //original Notification
+                var toast;
+                if (repeatInterval != 0 && repeatInterval < 360001 && repeatInterval > 59999) {
+                    toast = new Notifications.ScheduledToastNotification(toastDOM, dueTime, repeatInterval, 5);
+                } else {
+                    toast = new Notifications.ScheduledToastNotification(toastDOM, dueTime);
+                }
+                toast.id = "" + idNumber;
+                toast.tag = "Toast" + idNumber;
+
+                Notifications.ToastNotificationManager.createToastNotifier().addToSchedule(toast);
+
+                //backup Notification
+                var backup;
+                var ten_years_later = new Date(dueTime.getTime() + 315360000000);
+                if (repeatInterval != 0 && repeatInterval < 360001 && repeatInterval > 59999) {
+                    backup = new Notifications.ScheduledToastNotification(toastDOM, ten_years_later, repeatInterval, 5);
+                } else {
+                    backup = new Notifications.ScheduledToastNotification(toastDOM, ten_years_later);
+                }
+                backup.id = "" + idNumber + "-2";
+                backup.tag = "Toast" + idNumber;
+
+                Notifications.ToastNotificationManager.createToastNotifier().addToSchedule(backup);
+
+                //Add-Event
+                plugin.notification.local.onadd();
+                console.log("Scheduled a toast with ID: " + toast.id);
+
+                //Trigger-Event
+                WinJS.Promise.timeout(interval).then(
+                    function (complete) {
+                        if (localIsPersisted(idNumber)) {
+                            //save ID to know, that onTrigger event is already fired
+                            saveId(idNumber);
+                            //fire ontrigger-Event
+                            plugin.notification.local.ontrigger();
+                        }
+                    },
+                    function (error) {
+                        console.log("Error");
+                    });
+            } catch (e) {
+                console.log("Error loading the xml, check for invalid characters in the input", "sample", "error");
+            }
         }
-
     };
 
     localCancel = function (args,fireEvent) {
@@ -393,6 +403,14 @@
         return false;
     };
 
+    // method to parse sound file
+    parseSound = function (path,packageName) {
+        if (path.charAt(0) == 'f' && path.charAt(1) == 'i' && path.charAt(2) == 'l' && path.charAt(3) == 'e') {
+            var sound = "'ms-appx://" + packageName + "/www/" + path.slice(6, path.length) + "'";
+            var result = "<audio src=" + sound + " loop='false'/>"
+            return result; 
+        }
+    };
 
     // Methods to save Ids of allready triggered notifications
     saveId = function (id) {
@@ -452,4 +470,35 @@
             }
         }
         return result;
+    };
+
+    //set ontrigger Event
+    setOnTrigger = function(id) {
+        var arguments = localGetAll([id])[0];
+        var dueTime = new Date();
+        if (arguments.date) {
+            dueTime = new Date((arguments.date) * 1000 + 1000);
+        }
+        var now = new Date();
+        var interval = dueTime - now;
+
+        if (interval > 0) {
+            WinJS.Promise.timeout(interval).then(
+                function (complete) {
+                    if (localIsPersisted(id)) {
+                        //save ID to know, that onTrigger event is already fired
+                        saveId(id);
+                        //fire ontrigger-Event
+                        plugin.notification.local.ontrigger();
+                    }
+                },
+                function (error) {
+                    console.log("Error");
+                });
+        } else {
+            //save ID to know, that onTrigger event is already fired
+            saveId(id);
+            //fire ontrigger-Event
+            plugin.notification.local.ontrigger();
+        }
     };
