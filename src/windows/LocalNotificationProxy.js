@@ -172,8 +172,8 @@ require("cordova/exec/proxy").add("LocalNotification", module.exports);
                 }
             }
             var sound = "";
-            if (arguments.sound && arguments.packagename) {
-                sound = parseSound(arguments.sound, arguments.packagename);
+            if (arguments.sound) {
+                sound = parseSound(arguments.sound);
             }
         //Cancel old notification if it's already existing
             localCancel([idNumber], false);
@@ -223,7 +223,6 @@ require("cordova/exec/proxy").add("LocalNotification", module.exports);
 
             //Fire schedule/update Event
                 cordova.plugins.notification.local.fireEvent(event, [arguments]);
-                console.log("Scheduled a toast with ID: " + toast.id);
 
             // Initialize Trigger-Event
                 setOnTrigger(idNumber);
@@ -291,7 +290,11 @@ require("cordova/exec/proxy").add("LocalNotification", module.exports);
     localClear = function (args, fireEvent) {
         for (var i = 0, len = args.length; i < len; i++) {
             var id = args[i];
-            Windows.UI.Notifications.ToastNotificationManager.history.remove("Toast" + id);
+            try {
+                Windows.UI.Notifications.ToastNotificationManager.history.remove("Toast" + id);
+            } catch (e) {
+                console.log("Unable to clear notification: " + id);
+            }
             if (localIsTriggered(id) && !localIsScheduled(id)) {
                 localCancel([id], false);
             }
@@ -482,11 +485,11 @@ require("cordova/exec/proxy").add("LocalNotification", module.exports);
     /** Method to parse sound file
      *
      * @param {String} path relative path to sound resource
-     * @param {String} packageName App-Package-Name to access resource-Files
      *
      * @return {String} URI to Sound-File
      */
-    parseSound = function (path,packageName) {
+    parseSound = function (path) {
+        var packageName = Windows.ApplicationModel.Package.current.id.name;
         if (path.charAt(0) == 'f' && path.charAt(1) == 'i' && path.charAt(2) == 'l' && path.charAt(3) == 'e') {
             var sound = "'ms-appx://" + packageName + "/www/" + path.slice(6, path.length) + "'";
             var result = "<audio src=" + sound + " loop='false'/>"

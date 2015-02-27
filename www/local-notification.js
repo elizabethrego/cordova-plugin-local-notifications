@@ -526,7 +526,6 @@
 
             case 'windows':
                 defaults.sound = null;
-                defaults.packagename = null;
                 break;
         }
         return defaults;
