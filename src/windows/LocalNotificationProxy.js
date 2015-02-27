@@ -24,6 +24,7 @@
     var applicationData = Windows.Storage.ApplicationData.current;
     var localSettings = applicationData.localSettings;
 
+    //Fire remaining and initialize pending Trigger Events
     document.addEventListener('deviceready', function () {
         //fireEvents on appstart
         var idsToTrigger = getIdsForOntrigger();
@@ -34,15 +35,32 @@
         //scheduled notifications
         var scheduled = localGetScheduledIds();
         for (var i = 0, len = scheduled.length; i < len; i++) {
-            setOnTrigger(scheduled[i]);
+            if (isInFuture(scheduled[i])) {
+                setOnTrigger(scheduled[i]);
+            }
         }
     });
 
     // Cordova exec functions--------------------------------------------------------------------------
     module.exports = {
 
-    add: function (success, error, args) {
-        localSchedule(args);
+    schedule: function (success, error, args) {
+        localSchedule(args,'schedule');
+        success();
+    },
+
+    update: function (success, error, args) {
+        localSchedule(args,'update');
+        success();
+    },
+
+    clear: function (success, error, args) {
+        localClear(args,true);
+        success();
+    },
+
+    clearAll: function (success, error, args) {
+        localClearAll();
         success();
     },
 
@@ -56,29 +74,22 @@
         success();
     },
 
-    clear: function(success, error, args){
-        localClear(args);
-        success();
+    isPresent: function (success, error, args) {
+        var id = args[0];
+        var isPresent = localIsPresent(id);
+        success(isPresent);
     },
 
-    clearAll: function (success, error, args) {
-        localClearAll();
-        success();
+    isScheduled: function (success, error, args) {
+        var id = args[0];
+        var isScheduled = localIsScheduled(id);
+        success(isScheduled);
     },
 
-    getAll: function (success, error, args) {
-        var all = localGetAll(args);
-        success(all);
-    },
-
-    getScheduled: function (success, error, args) {
-        var scheduled = localGetScheduled();
-        success(scheduled);
-    },
-
-    getTriggered: function (success, error, args) {
-        var triggered = localGetTriggered();
-        success(triggered);
+    isTriggered: function (success, error, args) {
+        var id = args[0];
+        var isTriggered = localIsTriggered(id);
+        success(isTriggered);
     },
 
     getAllIds: function (success, error, args) {
@@ -96,45 +107,50 @@
         success(triggeredIds);
     },
 
-    isPersisted: function (success, error, args) {
-        var id = args[0];
-        var isPersisted = localIsPersisted(id);
-        success(isPersisted);
+    getAll: function (success, error, args) {
+        var all = localGetAll(args);
+        success(all);
     },
 
-    isScheduled: function (success, error, args) {
-        var id = args[0];
-        var isScheduled = localIsScheduled(id);
-        success(isScheduled);
+    getScheduled: function (success, error, args) {
+        var scheduled = localGetScheduled();
+        success(scheduled);
     },
 
-    isTriggered: function (success, error, args) {
-        var id = args[0];
-        var isTriggered = localIsTriggered(id);
-        success(isTriggered);
+    getTriggered: function (success, error, args) {
+        var triggered = localGetTriggered();
+        success(triggered);
     }
 
 };
-    require("cordova/exec/proxy").add("LocalNotification", module.exports);
+require("cordova/exec/proxy").add("LocalNotification", module.exports);
 
-    // local functions----------------------------------------------------------------------
+// local functions--------------------------------------------------------------------------
 
-    localSchedule = function (args) {
+    /** Method to schedule new notification
+     *
+     * @param {Array} args JSON-Array with notifications-arguments
+     * @param {String} event Fireevent-Name ('schedule' or 'update')
+     */
+    localSchedule = function (args,event) {
         for (var i = 0, len = args.length; i < len; i++) {
             var arguments = args[i];
 
-            //get Notification-Content
+            console.log(arguments);
+        //get Notification-Content
             var title = "Notification";
             if (arguments.title) {
                 title = arguments.title;
             }
             var message = "";
-            if (arguments.message) {
-                message = arguments.message;
+            if (arguments.text) {
+                message = arguments.text;
             }
             var dueTime = new Date();
-            if (arguments.date) {
-                dueTime = new Date((arguments.date) * 1000 + 1000);
+            if (arguments.at) {
+                dueTime = new Date((arguments.at * 1000) + 1000);
+            } else {
+                arguments.at = dueTime;
             }
             var idNumber;
             if (arguments.id) {
@@ -145,28 +161,25 @@
             arguments.id = idNumber;
             var repeat;
             var repeatInterval = 0;
-            if (arguments.repeat) {
-                repeat = arguments.repeat;
-                if (repeat === 'minutely') {
+            if (arguments.every) {
+                repeat = arguments.every;
+                if (repeat === 'minute') {
                     repeatInterval = 60000;
-                } else if (repeat === 'hourly') {
+                } else if (repeat === 'hour') {
                     repeatInterval = 360000;
                 } else {
                     repeatInterval = parseInt(repeat) * 60000;
                 }
             }
-            console.log(JSON.stringify(arguments));
             var sound = "";
-            console.log("" + arguments.sound);
-            console.log("" + arguments.packagename);
             if (arguments.sound && arguments.packagename) {
                 sound = parseSound(arguments.sound, arguments.packagename);
             }
-            //Cancel old notification if it's already existing
+        //Cancel old notification if it's already existing
             localCancel([idNumber], false);
             var now = new Date();
             var interval = dueTime - now;
-            // Scheduled toasts use the same toast templates as all other kinds of toasts.
+        // Scheduled toast
             var toastXmlString = "<toast>"
                 + "<visual version='2'>"
                 + "<binding template='ToastText02'>"
@@ -178,13 +191,11 @@
                 + "<json>" + JSON.stringify(arguments) + "</json>"
                 + "</toast>";
 
-            //        toastXmlString = toastXmlString.replace("updateString", title);
-
             var toastDOM = new Windows.Data.Xml.Dom.XmlDocument();
             try {
                 toastDOM.loadXml(toastXmlString);
 
-                //original Notification
+            //Initialization of original Notification
                 var toast;
                 if (repeatInterval != 0 && repeatInterval < 360001 && repeatInterval > 59999) {
                     toast = new Notifications.ScheduledToastNotification(toastDOM, dueTime, repeatInterval, 5);
@@ -194,9 +205,10 @@
                 toast.id = "" + idNumber;
                 toast.tag = "Toast" + idNumber;
 
+
                 Notifications.ToastNotificationManager.createToastNotifier().addToSchedule(toast);
 
-                //backup Notification
+            //Initialization of backup Notification (10 years later)
                 var backup;
                 var ten_years_later = new Date(dueTime.getTime() + 315360000000);
                 if (repeatInterval != 0 && repeatInterval < 360001 && repeatInterval > 59999) {
@@ -209,29 +221,23 @@
 
                 Notifications.ToastNotificationManager.createToastNotifier().addToSchedule(backup);
 
-                //Add-Event
-                plugin.notification.local.onadd();
+            //Fire schedule/update Event
+                cordova.plugins.notification.local.fireEvent(event, [arguments]);
                 console.log("Scheduled a toast with ID: " + toast.id);
 
-                //Trigger-Event
-                WinJS.Promise.timeout(interval).then(
-                    function (complete) {
-                        if (localIsPersisted(idNumber)) {
-                            //save ID to know, that onTrigger event is already fired
-                            saveId(idNumber);
-                            //fire ontrigger-Event
-                            plugin.notification.local.ontrigger();
-                        }
-                    },
-                    function (error) {
-                        console.log("Error");
-                    });
+            // Initialize Trigger-Event
+                setOnTrigger(idNumber);
             } catch (e) {
                 console.log("Error loading the xml, check for invalid characters in the input", "sample", "error");
             }
         }
     };
 
+    /** Method to cancel existing notification
+     *
+     * @param {Array} args JSON-Array with ids to cancel
+     * @param {Boolean} fireEvent Boolen (fire cancel-Event(true) or not(false) 
+     */
     localCancel = function (args,fireEvent) {
         for (var i = 0, len = args.length; i < len; i++) {
             var id = args[i];
@@ -246,46 +252,73 @@
 
             for (var i = 0, len = scheduled.length; i < len; i++) {
                 if (scheduled[i].id === itemId) {
+                    //cancel notification
                     notifier.removeFromSchedule(scheduled[i]);
+                    //fire oncancel
                     if (fireEvent) {
-                        plugin.notification.local.oncancel();
+                        cordova.plugins.notification.local.fireEvent('cancel', [localGetAll([id])]);
                     }
                 }
                 if (scheduled[i].id === itemId+"-2") {
                     notifier.removeFromSchedule(scheduled[i]);
                 }
             }
+            //remove from Notificationcenter
             if (fireEvent) {
                 history.remove("Toast" + itemId);
             }
         }
     };
 
+    /**
+     * Cancel all notifications
+     */
     localCancelAll = function () {
         var history = Windows.UI.Notifications.ToastNotificationManager.history;
         var allIds = localGetAllIds();
-        localCancel(allIds,true);
+        localCancel(allIds, false);
+        //Fire cancelall-Event
+        cordova.plugins.notification.local.fireEvent('cancelall', null);
+        //remove notifications from notificationcenter
         history.clear();
     };
 
-    localClear = function (args) {
+    /** Method to clear existing notification
+     *
+     * @param {Array} args JSON-Array with ids to cancel
+     * @param {Boolean} fireEvent Boolen (fire cancel-Event(true) or not(false)
+     */
+    localClear = function (args, fireEvent) {
         for (var i = 0, len = args.length; i < len; i++) {
             var id = args[i];
-            plugin.notification.local.onclear();
             Windows.UI.Notifications.ToastNotificationManager.history.remove("Toast" + id);
-            if (localIsTriggered(id)) {
-                localCancel([id],false);
+            if (localIsTriggered(id) && !localIsScheduled(id)) {
+                localCancel([id], false);
+            }
+            //fire onclear
+            if (fireEvent) {
+                cordova.plugins.notification.local.fireEvent('clear', [localGetAll([id])]);
             }
         }
     };
 
+    /**
+     * Clear all triggered Notifications without canceling scheduled
+     */
     localClearAll = function () {
         var triggeredIds = localGetTriggeredIds();
-        localClear(triggeredIds);
+        localClear(triggeredIds, false);
         Windows.UI.Notifications.ToastNotificationManager.history.clear();
     };
 
-    //get-functions
+//get-functions -------------------------------------------------------------------------------
+
+    /** Method to get all or specific notification-JSONObjects.
+     *
+     * @param {Array} args JSONArray with ids of requested Notifications (in case of specific ids)
+     *
+     * @return {Array} requested Notifications
+     */
     localGetAll = function (args) {
         var notifier = Notifications.ToastNotificationManager.createToastNotifier();
         var scheduled = notifier.getScheduledToastNotifications();
@@ -316,18 +349,30 @@
         return result;
     };
 
+    /** Method to get scheduled notification-JSONObjects.
+     *
+     * @return {Array} requested Notifications
+     */
     localGetScheduled = function () {
         var ids = localGetScheduledIds();
         var result = localGetAll(ids);
         return result;
     };
 
+    /** Method to get triggered notification-JSONObjects.
+     *
+     * @return {Array} requested Notifications
+     */
     localGetTriggered = function () {
         var ids = localGetTriggeredIds();
         var result = localGetAll(ids);
         return result;
     };
 
+    /** Method to get all ids.
+     *
+     * @return {Array} requested ids
+     */
     localGetAllIds = function () {
         var notifier = Notifications.ToastNotificationManager.createToastNotifier();
         var scheduled = notifier.getScheduledToastNotifications();
@@ -342,6 +387,10 @@
         return result;
     };
 
+    /** Method to get scheduled ids.
+     *
+     * @return {Array} requested ids
+     */
     localGetScheduledIds = function () {
         var notifier = Notifications.ToastNotificationManager.createToastNotifier();
         var scheduled = notifier.getScheduledToastNotifications();
@@ -355,6 +404,11 @@
         return result;
     };
 
+
+    /** Method to get triggered ids.
+     *
+     * @return {Array} requested ids
+     */
     localGetTriggeredIds = function () {
         var all = localGetAllIds();
         var scheduled = localGetScheduledIds();
@@ -363,7 +417,10 @@
             var isScheduled = false;
             for (var j = 0, lenS = scheduled.length; j < lenS; j++) {
                 if (all[i] === scheduled[j]) {
-                    isScheduled = true;
+                    //Check dueTime to filter triggered repaeting notifications
+                    if (isInFuture(all[i])) {
+                        isScheduled = true;
+                    } 
                 }
             }
             if (!isScheduled){
@@ -373,7 +430,13 @@
         return result;
     };
 
-    localIsPersisted = function (id) {
+    /** Check whether a specific notification exist
+     *
+     * @param {String} id id of the requested notification
+     *
+     * @return {Boolean} true if it exist
+     */
+    localIsPresent = function (id) {
         var all = localGetAllIds();
         for (var i = 0, len = all.length; i < len; i++) {
             if (all[i] === id) {
@@ -383,6 +446,12 @@
         return false;
     };
 
+    /** Check whether a specific notification is scheduled
+     *
+     * @param {String} id id of the requested notification
+     *
+     * @return {Boolean} true if it is scheduled
+     */
     localIsScheduled = function (id) {
         var scheduled = localGetScheduledIds();
         for (var i = 0, len = scheduled.length; i < len; i++) {
@@ -393,6 +462,12 @@
         return false;
     };
 
+    /** Check whether a specific notification has triggered
+     *
+     * @param {String} id id of the requested notification
+     *
+     * @return {Boolean} true if it has triggered
+     */
     localIsTriggered = function (id){
         var triggered = localGetTriggeredIds();
         for (var i = 0, len = triggered.length; i < len; i++) {
@@ -403,7 +478,14 @@
         return false;
     };
 
-    // method to parse sound file
+    
+    /** Method to parse sound file
+     *
+     * @param {String} path relative path to sound resource
+     * @param {String} packageName App-Package-Name to access resource-Files
+     *
+     * @return {String} URI to Sound-File
+     */
     parseSound = function (path,packageName) {
         if (path.charAt(0) == 'f' && path.charAt(1) == 'i' && path.charAt(2) == 'l' && path.charAt(3) == 'e') {
             var sound = "'ms-appx://" + packageName + "/www/" + path.slice(6, path.length) + "'";
@@ -412,7 +494,10 @@
         }
     };
 
-    // Methods to save Ids of allready triggered notifications
+    /** Save Id of allready triggered (trigger-Event) notifications
+     *
+     * @param {String} id of triggered notification
+     */
     saveId = function (id) {
         var temp = localSettings.values["persistedIds"];
         var ids;
@@ -425,6 +510,10 @@
         localSettings.values["persistedIds"] = JSON.stringify(ids);
     };
 
+    /** Remove Ids of allready triggered (trigger-Event) notifications
+     *
+     * @param {String} id of triggered notification
+     */
     removeId = function (id) {
         var temp = localSettings.values["persistedIds"];
         var ids;
@@ -442,6 +531,10 @@
         localSettings.values["persistedIds"] = JSON.stringify(ids);
     };
 
+    /** Get allready triggered (trigger-Event) ids
+     *
+     * @return {Array} allready triggered ids
+     */
     getSavedIds = function () {
         var temp = localSettings.values["persistedIds"];
         var ids;
@@ -453,7 +546,10 @@
         return ids;
     };
 
-    // Method to get all triggered Ids, that didn´t allready fired their ontrigger Event
+    /** Method to get all triggered Ids, that didn´t allready fired their ontrigger Event
+     *
+     * @return {Array} ids to fire on(trigger)
+     */
     getIdsForOntrigger = function () {
         var triggered = localGetTriggeredIds();
         var withEvent = getSavedIds();
@@ -472,12 +568,15 @@
         return result;
     };
 
-    //set ontrigger Event
+    /** set ontrigger Event
+     *
+     * @param {String} id Id to fire on(trigger)
+     */
     setOnTrigger = function(id) {
         var arguments = localGetAll([id])[0];
         var dueTime = new Date();
-        if (arguments.date) {
-            dueTime = new Date((arguments.date) * 1000 + 1000);
+        if (arguments.at) {
+            dueTime = new Date((arguments.at) * 1000 + 1000);
         }
         var now = new Date();
         var interval = dueTime - now;
@@ -485,11 +584,11 @@
         if (interval > 0) {
             WinJS.Promise.timeout(interval).then(
                 function (complete) {
-                    if (localIsPersisted(id)) {
+                    if (localIsPresent(id)) {
                         //save ID to know, that onTrigger event is already fired
                         saveId(id);
                         //fire ontrigger-Event
-                        plugin.notification.local.ontrigger();
+                        cordova.plugins.notification.local.fireEvent('trigger', [arguments]);
                     }
                 },
                 function (error) {
@@ -499,6 +598,23 @@
             //save ID to know, that onTrigger event is already fired
             saveId(id);
             //fire ontrigger-Event
-            plugin.notification.local.ontrigger();
+            cordova.plugins.notification.local.fireEvent('trigger',[arguments]);
         }
+    };
+
+    /** Check whether a notifications schedule-date is in Future
+     *
+     * @param {String} id id of notification
+     *
+     * @return {Boolean} True if date is in Future
+     */
+    isInFuture = function (id) {
+        var arguments = localGetAll([id])[0];
+        var dueTime = new Date((arguments.at) * 1000 + 1000);
+        var now = new Date();
+        if (now < dueTime) {
+            return true;
+        } else {
+            return false;
+        };
     };
