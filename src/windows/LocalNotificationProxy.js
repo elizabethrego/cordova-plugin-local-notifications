@@ -39,6 +39,7 @@
                 setOnTrigger(scheduled[i]);
             }
         }
+        WinJS.Application.addEventListener("activated", onActivatedHandler, false);
     });
 
     // Cordova exec functions--------------------------------------------------------------------------
@@ -180,7 +181,7 @@ require("cordova/exec/proxy").add("LocalNotification", module.exports);
             var now = new Date();
             var interval = dueTime - now;
         // Scheduled toast
-            var toastXmlString = "<toast>"
+            var toastXmlString = "<toast> "
                 + "<visual version='2'>"
                 + "<binding template='ToastText02'>"
                 + "<text id='2'>" + message + "</text>"
@@ -194,6 +195,12 @@ require("cordova/exec/proxy").add("LocalNotification", module.exports);
             var toastDOM = new Windows.Data.Xml.Dom.XmlDocument();
             try {
                 toastDOM.loadXml(toastXmlString);
+
+            //Add launch Attribute to enable onClick event
+                var launchAttribute = toastDOM.createAttribute("launch");
+                launchAttribute.value = "" +idNumber;
+                var toastNode = toastDOM.selectSingleNode("/toast");
+                toastNode.attributes.setNamedItem(launchAttribute);
 
             //Initialization of original Notification
                 var toast;
@@ -485,11 +492,14 @@ require("cordova/exec/proxy").add("LocalNotification", module.exports);
     /** Method to parse sound file
      *
      * @param {String} path relative path to sound resource
+     * @param {String} packageName App-Package-Name to access resource-Files
      *
      * @return {String} URI to Sound-File
      */
     parseSound = function (path) {
-        var packageName = Windows.ApplicationModel.Package.current.id.name;
+        var package = Windows.ApplicationModel.Package.current;
+        var packageId = package.id;
+        var packageName = packageId.name;
         if (path.charAt(0) == 'f' && path.charAt(1) == 'i' && path.charAt(2) == 'l' && path.charAt(3) == 'e') {
             var sound = "'ms-appx://" + packageName + "/www/" + path.slice(6, path.length) + "'";
             var result = "<audio src=" + sound + " loop='false'/>"
@@ -620,4 +630,18 @@ require("cordova/exec/proxy").add("LocalNotification", module.exports);
         } else {
             return false;
         };
+    };
+
+    /** Handle Toast Activation
+     * @param args Information about activated Toast
+     */
+    function onActivatedHandler(args) {
+        if (localIsPresent(args.detail.arguments)) {
+            var id = args.detail.arguments;
+            var JSON = localGetAll([id]);
+            localClear([id], true);
+
+            cordova.plugins.notification.local.fireEvent('click', JSON);
+        }
+
     };
