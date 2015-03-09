@@ -39,11 +39,16 @@
                 setOnTrigger(scheduled[i]);
             }
         }
-        WinJS.Application.addEventListener("activated", onActivatedHandler, false);
     });
 
+
+
     // Cordova exec functions--------------------------------------------------------------------------
-    module.exports = {
+module.exports = {
+
+    deviceready: function (success, error, args) {
+        WinJS.Application.addEventListener("activated", onActivatedHandler, false);
+    },
 
     schedule: function (success, error, args) {
         localSchedule(args,'schedule');
@@ -51,7 +56,7 @@
     },
 
     update: function (success, error, args) {
-        localSchedule(args,'update');
+        localUpdate(args);
         success();
     },
 
@@ -136,8 +141,6 @@ require("cordova/exec/proxy").add("LocalNotification", module.exports);
     localSchedule = function (args,event) {
         for (var i = 0, len = args.length; i < len; i++) {
             var arguments = args[i];
-
-            console.log(arguments);
         //get Notification-Content
             var title = "Notification";
             if (arguments.title) {
@@ -229,22 +232,68 @@ require("cordova/exec/proxy").add("LocalNotification", module.exports);
                 Notifications.ToastNotificationManager.createToastNotifier().addToSchedule(backup);
 
             //Fire schedule/update Event
-                cordova.plugins.notification.local.fireEvent(event, [arguments]);
-
-            // Initialize Trigger-Event
-                setOnTrigger(idNumber);
+                cordova.plugins.notification.local.fireEvent(event, arguments);
+                // Initialize Trigger-Event
+                if (event === 'schedule') {
+                    setOnTrigger(idNumber);
+                } else {
+                    //add id to allready triggered ids to prevent onTrigger
+                    saveId(idNumber);
+                }
             } catch (e) {
                 console.log("Error loading the xml, check for invalid characters in the input", "sample", "error");
             }
         }
     };
 
+    localUpdate = function (args) {
+        for (var i = 0, len = args.length; i < len; i++) {
+            var arguments = args[i];
+            //get Notification-Content
+            var idNumber;
+            if (arguments.id) {
+                idNumber = arguments.id;
+            } else {
+                idNumber = "0";
+            }
+
+            //get old notification
+            var oldArguments = localGetAll([idNumber])[0];
+
+            //modify args
+            if (arguments.title) {
+                oldArguments.title = arguments.title;
+            }
+            if (arguments.text) {
+                oldArguments.text = arguments.text;
+            }
+            if (arguments.at) {
+                oldArguments.at = arguments.at;
+            } else {
+                var now = new Date();
+                oldArguments.at = (now / 1000);
+            }
+            if (arguments.every) {
+                oldArguments.every = arguments.every;
+            }
+            if (arguments.sound) {
+                oldArguments.sound = arguments.sound;
+            }
+            if (arguments.json) {
+                oldArguments.json = arguments.json;
+            }
+
+            localSchedule([oldArguments], 'update');
+        }
+
+    }
+
     /** Method to cancel existing notification
      *
      * @param {Array} args JSON-Array with ids to cancel
      * @param {Boolean} fireEvent Boolen (fire cancel-Event(true) or not(false) 
      */
-    localCancel = function (args,fireEvent) {
+    localCancel = function (args, fireEvent) {
         for (var i = 0, len = args.length; i < len; i++) {
             var id = args[i];
             removeId(id);
@@ -256,17 +305,18 @@ require("cordova/exec/proxy").add("LocalNotification", module.exports);
             scheduled = notifier.getScheduledToastNotifications();
 
 
-            for (var i = 0, len = scheduled.length; i < len; i++) {
-                if (scheduled[i].id === itemId) {
+            for (var j = 0, len = scheduled.length; j < len; j++) {
+                if (scheduled[j].id === itemId) {
+                    var notification = localGetAll([id])[0];
                     //cancel notification
-                    notifier.removeFromSchedule(scheduled[i]);
+                    notifier.removeFromSchedule(scheduled[j]);
                     //fire oncancel
                     if (fireEvent) {
-                        cordova.plugins.notification.local.fireEvent('cancel', [localGetAll([id])]);
+                       cordova.plugins.notification.local.fireEvent('cancel', notification);
                     }
                 }
-                if (scheduled[i].id === itemId+"-2") {
-                    notifier.removeFromSchedule(scheduled[i]);
+                if (scheduled[j].id === itemId+"-2") {
+                    notifier.removeFromSchedule(scheduled[j]);
                 }
             }
             //remove from Notificationcenter
@@ -297,17 +347,14 @@ require("cordova/exec/proxy").add("LocalNotification", module.exports);
     localClear = function (args, fireEvent) {
         for (var i = 0, len = args.length; i < len; i++) {
             var id = args[i];
-            try {
-                Windows.UI.Notifications.ToastNotificationManager.history.remove("Toast" + id);
-            } catch (e) {
-                console.log("Unable to clear notification: " + id);
-            }
+            var notification =  localGetAll([id])[0];
+            Windows.UI.Notifications.ToastNotificationManager.history.remove("Toast" + id);
             if (localIsTriggered(id) && !localIsScheduled(id)) {
                 localCancel([id], false);
             }
             //fire onclear
             if (fireEvent) {
-                cordova.plugins.notification.local.fireEvent('clear', [localGetAll([id])]);
+                cordova.plugins.notification.local.fireEvent('clear',notification);
             }
         }
     };
@@ -319,6 +366,8 @@ require("cordova/exec/proxy").add("LocalNotification", module.exports);
         var triggeredIds = localGetTriggeredIds();
         localClear(triggeredIds, false);
         Windows.UI.Notifications.ToastNotificationManager.history.clear();
+        cordova.plugins.notification.local.fireEvent('clearall', null);
+
     };
 
 //get-functions -------------------------------------------------------------------------------
@@ -349,9 +398,9 @@ require("cordova/exec/proxy").add("LocalNotification", module.exports);
             var id = args[i];
             itemId = "" + id;
 
-            for (var i = 0, len = scheduled.length; i < len; i++) {
-                if (scheduled[i].id === itemId + "-2") {
-                    result.push(JSON.parse(scheduled[i].content.lastChild.lastChild.innerText));
+            for (var j = 0, len = scheduled.length; j < len; j++) {
+                if (scheduled[j].id === itemId + "-2") {
+                    result.push(JSON.parse(scheduled[j].content.lastChild.lastChild.innerText));
                 }
             }
 
@@ -365,8 +414,11 @@ require("cordova/exec/proxy").add("LocalNotification", module.exports);
      */
     localGetScheduled = function () {
         var ids = localGetScheduledIds();
-        var result = localGetAll(ids);
-        return result;
+        if (ids.length == 0) {
+            return [];
+        } else {
+            return localGetAll(ids);
+        }
     };
 
     /** Method to get triggered notification-JSONObjects.
@@ -375,8 +427,11 @@ require("cordova/exec/proxy").add("LocalNotification", module.exports);
      */
     localGetTriggered = function () {
         var ids = localGetTriggeredIds();
-        var result = localGetAll(ids);
-        return result;
+        if (ids.length ==0) {
+            return ids;
+        } else {
+            return localGetAll(ids);
+        }
     };
 
     /** Method to get all ids.
@@ -601,7 +656,7 @@ require("cordova/exec/proxy").add("LocalNotification", module.exports);
                         //save ID to know, that onTrigger event is already fired
                         saveId(id);
                         //fire ontrigger-Event
-                        cordova.plugins.notification.local.fireEvent('trigger', [arguments]);
+                        cordova.plugins.notification.local.fireEvent('trigger', arguments);
                     }
                 },
                 function (error) {
@@ -611,7 +666,7 @@ require("cordova/exec/proxy").add("LocalNotification", module.exports);
             //save ID to know, that onTrigger event is already fired
             saveId(id);
             //fire ontrigger-Event
-            cordova.plugins.notification.local.fireEvent('trigger',[arguments]);
+            cordova.plugins.notification.local.fireEvent('trigger',arguments);
         }
     };
 
@@ -641,7 +696,7 @@ require("cordova/exec/proxy").add("LocalNotification", module.exports);
             var JSON = localGetAll([id]);
             localClear([id], true);
 
-            cordova.plugins.notification.local.fireEvent('click', JSON);
+            cordova.plugins.notification.local.fireEvent('click', JSON[0]);
         }
 
     };
