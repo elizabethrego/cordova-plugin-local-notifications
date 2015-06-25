@@ -1,4 +1,7 @@
 ## ChangeLog
+#### Version 0.7.9 (not yet released)
+- Update device plugin id
+
 #### Version 0.7.8 (11.01.2015)
 - [bugfix:] NSInvalidArgumentException caused on iOS.
 
