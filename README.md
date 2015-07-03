@@ -17,7 +17,10 @@ Users see notifications in the following ways:
 Local notifications are ideally suited for applications with time-based behaviors, such as calendar and to-do list applications. Applications that run in the background for the limited period allowed by iOS might also find local notifications useful.<br>
 For example, applications that depend on servers for messages or data can poll their servers for incoming items while running in the background; if a message is ready to view or an update is ready to download, they can then present a local notification immediately to inform their users.
 
-## 0.9 Beta (The release/release-0.9 branch)
+## 8.whatever Beta (The master branch)
+- Includes iOS 9 Support, moving away from depricated and buggy Objective-C Code. This is the only fix that will go into the 8 branch as any new development will continue in the feature/beta-0.9 and develop branches.
+
+## 0.9 Beta (The feature/beta-0.9 branch, if you want un-stable use the develop branch)
 - Includes iOS 9 Support, moving away from depricated and buggy Objective-C Code
 
 ## Supported Platforms
@@ -90,22 +93,6 @@ Find out more informations [here][wiki_samples] in our wiki.
 We appricate any feature proposal and support for their development. Please describe them [here][feature_proposal_issue].
 
 Find out more informations [here][wiki_next] in our wiki.
-
-## Supporting
-Your support is needed. If you use the plugin please send us a drop through the donation button.
-
-Thank you!
-
-[![PayPayl donate button](https://img.shields.io/badge/paypal-donate-yellow.svg)](https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=L3HKQCD9UA35A "Donate once-off to this project using Paypal")
-
-
-## Contributing
-
-1. Fork it
-2. Create your feature branch (`git checkout -b my-new-feature`)
-3. Commit your changes (`git commit -am 'Add some feature'`)
-4. Push to the branch (`git push origin my-new-feature`)
-5. Create new Pull Request
 
 
 ## License
