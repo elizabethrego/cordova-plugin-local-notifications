@@ -17,6 +17,8 @@ Users see notifications in the following ways:
 Local notifications are ideally suited for applications with time-based behaviors, such as calendar and to-do list applications. Applications that run in the background for the limited period allowed by iOS might also find local notifications useful.<br>
 For example, applications that depend on servers for messages or data can poll their servers for incoming items while running in the background; if a message is ready to view or an update is ready to download, they can then present a local notification immediately to inform their users.
 
+## 0.9 Beta (The release/release-0.9 branch)
+- Includes iOS 9 Support, moving away from depricated and buggy Objective-C Code
 
 ## Supported Platforms
 The current 0.8 branch supports the following platforms:
