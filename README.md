@@ -1,6 +1,10 @@
 Cordova Local-Notification Plugin
 =================================
 
+** Discliamer: This was forked from Katzers repo (<a href="https://github.com/katzer/cordova-plugin-local-notifications">Found Here</a>) however it does not seem to be maintained and users that are using it for iOS 9 testing and other features are requesting new things but can not get them added. I hope that I can keep this plugin alive. I am not the most proficient in Objective-C or Java (andoird specifically) but lets see where this takes us! **
+
+** Beta Disclaimer: These features are being tested throughout multiple apps and users, please submit issues as you find them with as much detail as possible. I'd like to keep this beta 0.9 branch as stable as possible. There is a 'develop' branch that will act as the unstable, but most up to date with any changes branch. Thanks! **
+
 The essential purpose of local notifications is to enable an application to inform its users that it has something for them — for example, a message or an upcoming appointment — when the application isn’t running in the foreground.<br>
 They are scheduled by an application and delivered on the same device.
 
@@ -90,23 +94,6 @@ Find out more informations [here][wiki_samples] in our wiki.
 We appricate any feature proposal and support for their development. Please describe them [here][feature_proposal_issue].
 
 Find out more informations [here][wiki_next] in our wiki.
-
-## Supporting
-Your support is needed. If you use the plugin please send us a drop through the donation button.
-
-Thank you!
-
-[![PayPayl donate button](https://img.shields.io/badge/paypal-donate-yellow.svg)](https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=L3HKQCD9UA35A "Donate once-off to this project using Paypal")
-
-
-## Contributing
-
-1. Fork it
-2. Create your feature branch (`git checkout -b my-new-feature`)
-3. Commit your changes (`git commit -am 'Add some feature'`)
-4. Push to the branch (`git push origin my-new-feature`)
-5. Create new Pull Request
-
 
 ## License
 
