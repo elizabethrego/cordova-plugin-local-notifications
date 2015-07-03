@@ -1,18 +1,10 @@
-
-[![PayPayl donate button](https://img.shields.io/badge/paypal-donate-yellow.svg)](https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=L3HKQCD9UA35A "Donate once-off to this project using Paypal")
-
-#### :bangbang: Please vote for that cordova-windows issue :bangbang:
-https://issues.apache.org/jira/browse/CB-8674
-
-Thanks a lot!
-
 Cordova Local-Notification Plugin
 =================================
 
 The essential purpose of local notifications is to enable an application to inform its users that it has something for them — for example, a message or an upcoming appointment — when the application isn’t running in the foreground.<br>
 They are scheduled by an application and delivered on the same device.
 
-<img width="35%" align="right" hspace="19" vspace="12" src="https://github.com/katzer/cordova-plugin-local-notifications/blob/example/images/android.png"></img>
+<img width="35%" align="right" hspace="19" vspace="12" src="https://github.com/northmccormick/cordova-plugin-local-notifications/blob/example/images/android.png"></img>
 
 ### How they appear to the user
 Users see notifications in the following ways:
