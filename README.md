@@ -24,6 +24,9 @@ For example, applications that depend on servers for messages or data can poll t
 ## 0.9 Beta (The release/release-0.9 branch)
 - Includes iOS 9 Support, moving away from depricated and buggy Objective-C Code
 
+## 8.whatever Beta (The master branch)
+- Includes iOS 9 Support, moving away from depricated and buggy Objective-C Code. This is the only fix that will go into the current master branch.
+
 ## Supported Platforms
 The current 0.8 branch supports the following platforms:
 - __iOS__ _(including iOS8)_<br>
