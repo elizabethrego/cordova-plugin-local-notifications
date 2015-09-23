@@ -648,7 +648,7 @@
 
     [center addObserver:self
                selector:@selector(didRegisterUserNotificationSettings:)
-                   name:UIApplicationDidRegisterUserNotificationSettings
+                   name:UIApplicationRegisterUserNotificationSettings
                  object:nil];
 }
 
