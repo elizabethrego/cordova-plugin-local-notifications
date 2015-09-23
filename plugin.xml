@@ -2,8 +2,8 @@
 
 <plugin xmlns="http://apache.org/cordova/ns/plugins/1.0"
         xmlns:android="http://schemas.android.com/apk/res/android"
-        id="de.appplant.cordova.plugin.local-notification-meq"
-        version="0.8.4">
+        id="de.appplant.cordova.plugin.local-notification-ios9-fix"
+        version="0.8.2">
 
     <name>LocalNotification</name>
 
@@ -51,7 +51,7 @@
 
     <!-- ios -->
     <platform name="ios">
-
+        <dependency id="de.appplant.cordova.common.registerusernotificationsettings" />
         <config-file target="config.xml" parent="/*">
             <feature name="LocalNotification">
                 <param name="ios-package" value="APPLocalNotification" onload="true" />
@@ -70,14 +70,6 @@
 
         <header-file src="src/ios/UILocalNotification+APPLocalNotification.h" />
         <source-file src="src/ios/UILocalNotification+APPLocalNotification.m" />
-
-        <hook
-            type="after_platform_add"
-            src="scripts/ios/didRegisterUserNotificationSettings.js" />
-
-        <hook
-            type="after_plugin_install"
-            src="scripts/ios/didRegisterUserNotificationSettings.js" />
 
     </platform>
 
