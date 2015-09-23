@@ -1,6 +1,10 @@
 Cordova Local-Notification Plugin
 =================================
 
+** Discliamer: This was forked from Katzers repo (<a href="https://github.com/katzer/cordova-plugin-local-notifications">Found Here</a>) however it does not seem to be maintained and users that are using it for iOS 9 testing and other features are requesting new things but can not get them added. I hope that I can keep this plugin alive. I am not the most proficient in Objective-C or Java (andoird specifically) but lets see where this takes us! **
+
+** Beta Disclaimer: These features are being tested throughout multiple apps and users, please submit issues as you find them with as much detail as possible. I'd like to keep this beta 0.9 branch as stable as possible. There is a 'develop' branch that will act as the unstable, but most up to date with any changes branch. Thanks! **
+
 The essential purpose of local notifications is to enable an application to inform its users that it has something for them — for example, a message or an upcoming appointment — when the application isn’t running in the foreground.<br>
 They are scheduled by an application and delivered on the same device.
 
@@ -22,6 +26,9 @@ For example, applications that depend on servers for messages or data can poll t
 
 ## 0.9 Beta (The feature/beta-0.9 branch, if you want un-stable use the develop branch)
 - Includes iOS 9 Support, moving away from depricated and buggy Objective-C Code
+
+## 8.whatever Beta (The master branch)
+- Includes iOS 9 Support, moving away from depricated and buggy Objective-C Code. This is the only fix that will go into the current master branch.
 
 ## Supported Platforms
 The current 0.8 branch supports the following platforms:
