@@ -63,21 +63,42 @@ exports.setDefaults = function (newDefaults) {
  *      The scope for the callback function
  */
 exports.schedule = function (opts, callback, scope) {
-    this.registerPermission(function(granted) {
+    var notifications = Array.isArray(opts) ? opts : [opts];
+    var allInteractions = [];
 
-        if (!granted)
-            return;
+    var MAX_ACTIONS = 4;
 
-        var notifications = Array.isArray(opts) ? opts : [opts];
+    for (var i = 0; i < notifications.length; i++) {
+        var properties = notifications[i];
 
-        for (var i = 0; i < notifications.length; i++) {
-            var properties = notifications[i];
+        /*
+        if (properties.actions) {
+            allInteractions.push(JSON.stringify(properties.actions));
+        }
+        */
 
-            this.mergeWithDefaults(properties);
-            this.convertProperties(properties);
+        if (properties.category && properties.actions) {
+            var interaction = {};
+            interaction.category = properties.category;
+            if (properties.actions.length <= MAX_ACTIONS) {
+                interaction.actions = properties.actions;
+            } else {
+                interaction.actions = [];
+                for (var i = 0; i < MAX_ACTIONS; i++) {
+                    interaction.actions.push(properties.actions[i]);
+                }
+            }
+            allInteractions.push(JSON.stringify(interaction));
         }
 
-        this.exec('schedule', notifications, callback, scope);
+        this.mergeWithDefaults(properties);
+        this.convertProperties(properties);
+    }
+
+    this.registerPermission(allInteractions, function(granted) {
+        if (granted) {
+            this.exec('schedule', notifications, callback, scope);
+        }
     }, this);
 };
 
@@ -413,7 +434,7 @@ exports.hasPermission = function (callback, scope) {
  * @param {Object?} scope
  *      The callback function's scope
  */
-exports.registerPermission = function (callback, scope) {
+exports.registerPermission = function (interactions, callback, scope) {
     var fn = this.createCallbackFn(callback, scope);
 
     if (device.platform != 'iOS') {
@@ -421,7 +442,7 @@ exports.registerPermission = function (callback, scope) {
         return;
     }
 
-    exec(fn, null, 'LocalNotification', 'registerPermission', []);
+    exec(fn, null, 'LocalNotification', 'registerPermission', interactions);
 };
 
 

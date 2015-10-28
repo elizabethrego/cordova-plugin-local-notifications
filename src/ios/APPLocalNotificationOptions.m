@@ -46,6 +46,8 @@ NSString* const DEFAULT_SOUND = @"res://platform_default";
  */
 - (id) initWithDict:(NSDictionary*)dictionary
 {
+    NSLog(@"\r\rDEBUG-LOG APPLocalNotificationOptions - initWithDict\rLINE 47\r");
+
     self = [super init];
 
     self.dict = dictionary;
@@ -61,6 +63,8 @@ NSString* const DEFAULT_SOUND = @"res://platform_default";
  */
 - (NSNumber*) id
 {
+    NSLog(@"\r\rDEBUG-LOG APPLocalNotificationOptions - id\rLINE 64\r");
+
     NSInteger id = [[dict objectForKey:@"id"] integerValue];
 
     return [NSNumber numberWithInteger:id];
@@ -71,6 +75,8 @@ NSString* const DEFAULT_SOUND = @"res://platform_default";
  */
 - (NSString*) title
 {
+    NSLog(@"\r\rDEBUG-LOG APPLocalNotificationOptions - title\rLINE 72\r");
+
     return [dict objectForKey:@"title"];
 }
 
@@ -79,6 +85,8 @@ NSString* const DEFAULT_SOUND = @"res://platform_default";
  */
 - (NSString*) text
 {
+    NSLog(@"\r\rDEBUG-LOG APPLocalNotificationOptions - text\rLINE 80\r");
+
     return [dict objectForKey:@"text"];
 }
 
@@ -87,7 +95,19 @@ NSString* const DEFAULT_SOUND = @"res://platform_default";
  */
 - (NSInteger) badgeNumber
 {
+    NSLog(@"\r\rDEBUG-LOG APPLocalNotificationOptions - badgeNumber\rLINE 88\r");
+
     return [[dict objectForKey:@"badge"] intValue];
+}
+
+/**
+ * The notification's category.
+ */
+- (NSString*) category
+{
+    NSLog(@"\r\rDEBUG-LOG APPLocalNotificationOptions - category\rLINE ??\r");
+
+    return [dict objectForKey:@"category"];
 }
 
 #pragma mark -
@@ -98,6 +118,8 @@ NSString* const DEFAULT_SOUND = @"res://platform_default";
  */
 - (NSString*) alertBody
 {
+    NSLog(@"\r\rDEBUG-LOG APPLocalNotificationOptions - alertBody\rLINE 99\r");
+
     NSString* title = [self title];
     NSString* msg = [self text];
 
@@ -117,6 +139,8 @@ NSString* const DEFAULT_SOUND = @"res://platform_default";
  */
 - (NSString*) soundName
 {
+    NSLog(@"\r\rDEBUG-LOG APPLocalNotificationOptions - soundName\rLINE 118\r");
+
     NSString* path = [dict objectForKey:@"sound"];
 
     if ([self stringIsNullOrEmpty:path])
@@ -139,6 +163,8 @@ NSString* const DEFAULT_SOUND = @"res://platform_default";
  */
 - (NSDate*) fireDate
 {
+    NSLog(@"\r\rDEBUG-LOG APPLocalNotificationOptions - fireDate\rLINE 140\r");
+
     double timestamp = [[dict objectForKey:@"at"]
                         doubleValue];
 
@@ -150,6 +176,8 @@ NSString* const DEFAULT_SOUND = @"res://platform_default";
  */
 - (NSCalendarUnit) repeatInterval
 {
+    NSLog(@"\r\rDEBUG-LOG APPLocalNotificationOptions - repeatInterval\rLINE 151\r");
+
     NSString* interval = [dict objectForKey:@"every"];
 
     if ([self stringIsNullOrEmpty:interval]) {
@@ -188,6 +216,8 @@ NSString* const DEFAULT_SOUND = @"res://platform_default";
  */
 - (NSDictionary*) userInfo
 {
+    NSLog(@"\r\rDEBUG-LOG APPLocalNotificationOptions - userInfo\rLINE 189\r");
+
     if ([dict objectForKey:@"updatedAt"]) {
         NSMutableDictionary* data = [dict mutableCopy];
 
@@ -204,6 +234,8 @@ NSString* const DEFAULT_SOUND = @"res://platform_default";
  */
 - (BOOL) isRepeating
 {
+    NSLog(@"\r\rDEBUG-LOG APPLocalNotificationOptions - isRepeating\rLINE 205\r");
+
     NSCalendarUnit interval = self.repeatInterval;
 
     return !(interval == NSCalendarUnitEra || interval == 0);
@@ -217,6 +249,8 @@ NSString* const DEFAULT_SOUND = @"res://platform_default";
  */
 - (NSString*) soundNameForAsset:(NSString*)path
 {
+    NSLog(@"\r\rDEBUG-LOG APPLocalNotificationOptions - soundNameForAsset\rLINE 218\r");
+
     return [path stringByReplacingOccurrencesOfString:@"file:/"
                                            withString:@"www"];
 }
@@ -226,6 +260,8 @@ NSString* const DEFAULT_SOUND = @"res://platform_default";
  */
 - (NSString*) soundNameForResource:(NSString*)path
 {
+    NSLog(@"\r\rDEBUG-LOG APPLocalNotificationOptions - soundNameForResource\rLINE 227\r");
+
     return [path pathComponents].lastObject;
 }
 
@@ -234,6 +270,8 @@ NSString* const DEFAULT_SOUND = @"res://platform_default";
  */
 - (BOOL) stringIsNullOrEmpty:(NSString*)str
 {
+    NSLog(@"\r\rDEBUG-LOG APPLocalNotificationOptions - stringIsNullOrEmpty\rLINE 235\r");
+
     if (str == (NSString*)[NSNull null])
         return YES;
 

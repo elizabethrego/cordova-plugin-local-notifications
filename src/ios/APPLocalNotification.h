@@ -75,4 +75,7 @@
 // Property list for given triggered notifications
 - (void) getTriggered:(CDVInvokedUrlCommand*)command;
 
+// Callback to js to handle action
+ - (void) handleNotificationAction:(NSString*)identifier;
+
 @end

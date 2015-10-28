@@ -368,3 +368,7 @@ exports.on = function (event, callback, scope) {
 exports.un = function (event, callback) {
     this.core.un(event, callback, scope);
 };
+
+exports.sendActionIdentifier = function (identifier) {
+    alert(identifier);
+}
