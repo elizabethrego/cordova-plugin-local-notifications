@@ -27,7 +27,7 @@
 @implementation UIApplication (APPLocalNotification)
 
 NSMutableDictionary *allNotificationActions = nil;
-NSMutableDictionary *allNotificationCategories = nil;  //these def need to be mutable
+NSMutableDictionary *allNotificationCategories = nil;
 
 #pragma mark -
 #pragma mark Permissions
@@ -37,8 +37,6 @@ NSMutableDictionary *allNotificationCategories = nil;  //these def need to be mu
  */
 - (BOOL) hasPermissionToScheduleLocalNotifications
 {
-    NSLog(@"\r\rDEBUG-LOG UIApplication+APPLocalNotification - hasPermissionToScheduleLocalNotifications\rLINE 35\r");
-
     if ([[UIApplication sharedApplication]
          respondsToSelector:@selector(registerUserNotificationSettings:)])
     {
@@ -61,8 +59,6 @@ NSMutableDictionary *allNotificationCategories = nil;  //these def need to be mu
  */
 - (void) registerPermissionToScheduleLocalNotifications:(NSArray*)interactions
 {
-    NSLog(@"\r\rDEBUG-LOG UIApplication+APPLocalNotification - registerPermissionToScheduleLocalNotifications\rLINE 57\r");
-
     if ([[UIApplication sharedApplication]
          respondsToSelector:@selector(registerUserNotificationSettings:)])
     {
@@ -104,16 +100,11 @@ NSMutableDictionary *allNotificationCategories = nil;  //these def need to be mu
                 NSData* interactionsData = [interaction dataUsingEncoding:NSUTF8StringEncoding];
                 NSDictionary* interactionsArray = [NSJSONSerialization JSONObjectWithData:interactionsData options:NSJSONReadingMutableContainers error:nil];
 
-                NSLog(@"VALUE OF INTERACTIONSARRAY: %@", interactionsArray);
-
                 NSArray* actions = [interactionsArray objectForKey:@"actions"];
                 NSString* category = [interactionsArray objectForKey:@"category"];
                 
                 // Redundant: already checking in local-notification-core.js
                 if ([actions count] && category.length) {
-                    NSLog(@"\r\rVALUE OF ACTIONS: %@", actions);
-                    NSLog(@"\r\rVALUE OF CATEGORY: %@", category);
-                    
                     if (![allNotificationCategories objectForKey:category]) // category doesn't already exist
                     {
                         UIMutableUserNotificationCategory* newCategory;
@@ -130,7 +121,7 @@ NSMutableDictionary *allNotificationCategories = nil;  //these def need to be mu
                             {
                                 NSString* actionIdent = [action objectForKey:@"identifier"];
                                 UIMutableUserNotificationAction* existingAction = [allNotificationActions objectForKey:actionIdent];
-                                if (!existingAction) // action doesn't already exist
+                                if (!existingAction) 
                                 {
                                     UIMutableUserNotificationAction* newAction = [[UIMutableUserNotificationAction alloc] init];
                                     [newAction setActivationMode:[[action objectForKey:@"activationMode"]  isEqual: @"background"]
@@ -139,21 +130,19 @@ NSMutableDictionary *allNotificationCategories = nil;  //these def need to be mu
                                     [newAction setIdentifier:actionIdent];
                                     [newAction setDestructive:[[action objectForKey:@"destructive"] boolValue]];
                                     [newAction setAuthenticationRequired:[[action objectForKey:@"authenticationRequired"] boolValue]];
+                                    [newAction setBehavior:[[action objectForKey:@"behavior"]  isEqual: @"textInput"]
+                                        ? UIUserNotificationActionBehaviorTextInput : UIUserNotificationActionBehaviorDefault];
+                                    if ([action objectForKey:@"textInputSendTitle"]) {
+                                        [newAction setParameters:[NSDictionary dictionaryWithObject:[action objectForKey:@"textInputSendTitle"]
+                                                                                             forKey:UIUserNotificationTextInputActionButtonTitleKey]];
+                                    }
                                 
-                                    // Add action to persisted dictionary
                                     [allNotificationActions setObject:newAction forKey:actionIdent];
-                                
-                                
-                                    NSLog(@"\r\rNEW ACTION: %@\r\r", newAction);
-                                } else {
-                                    NSLog(@"\r\rEXISTING ACTION: %@\r\r", existingAction);
-                                }
-                            
-                                // Add action from persisted dictionary to array
+                                } 
+
                                 [actionsArray addObject:[allNotificationActions objectForKey:actionIdent]];
                             }
                         }
-                        NSLog(@"VALUE OF ACTIONSARRAY: %@", actionsArray);
                         
                         if ([actionsArray count] > 2)
                         {
@@ -169,9 +158,6 @@ NSMutableDictionary *allNotificationCategories = nil;  //these def need to be mu
         }
         
         NSSet* categories = [NSSet setWithArray:[allNotificationCategories allValues]];
-
-        NSLog(@"VALUE OF CATEGORIES: %@", categories);
-
         return categories;
 }
 
@@ -184,8 +170,6 @@ NSMutableDictionary *allNotificationCategories = nil;  //these def need to be mu
  */
 - (NSArray*) localNotifications
 {
-    NSLog(@"\r\rDEBUG-LOG UIApplication+APPLocalNotification - localNotifications\rLINE 85\r");
-
     NSArray* scheduledNotifications = self.scheduledLocalNotifications;
     NSMutableArray* notifications = [[NSMutableArray alloc] init];
 
@@ -205,8 +189,6 @@ NSMutableDictionary *allNotificationCategories = nil;  //these def need to be mu
  */
 - (NSArray*) triggeredLocalNotifications
 {
-    NSLog(@"\r\rDEBUG-LOG UIApplication+APPLocalNotification - triggeredLocalNotifications\rLINE 104\r");
-
     NSArray* notifications = self.localNotifications;
     NSMutableArray* triggeredNotifications = [[NSMutableArray alloc] init];
 
@@ -225,8 +207,6 @@ NSMutableDictionary *allNotificationCategories = nil;  //these def need to be mu
  */
 - (NSArray*) localNotificationIds
 {
-    NSLog(@"\r\rDEBUG-LOG UIApplication+APPLocalNotification - localNotificationIds\rLINE 122\r");
-
     NSArray* notifications = self.localNotifications;
     NSMutableArray* ids = [[NSMutableArray alloc] init];
 
@@ -246,8 +226,6 @@ NSMutableDictionary *allNotificationCategories = nil;  //these def need to be mu
  */
 - (NSArray*) localNotificationIdsByType:(APPLocalNotificationType)type
 {
-    NSLog(@"\r\rDEBUG-LOG UIApplication+APPLocalNotification - localNotificationIdsByType\rLINE 141\r");
-
     NSArray* notifications = self.localNotifications;
     NSMutableArray* ids = [[NSMutableArray alloc] init];
 
@@ -269,8 +247,6 @@ NSMutableDictionary *allNotificationCategories = nil;  //these def need to be mu
  */
 - (BOOL) localNotificationExist:(NSNumber*)id
 {
-    NSLog(@"\r\rDEBUG-LOG UIApplication+APPLocalNotification - localNotificationExist\rLINE 162\r");
-
     return [self localNotificationWithId:id] != NULL;
 }
 
@@ -283,8 +259,6 @@ NSMutableDictionary *allNotificationCategories = nil;  //these def need to be mu
  */
 - (BOOL) localNotificationExist:(NSNumber*)id type:(APPLocalNotificationType)type
 {
-    NSLog(@"\r\rDEBUG-LOG UIApplication+APPLocalNotification - localNotificationExist:type\rLINE 174\r");
-
     return [self localNotificationWithId:id andType:type] != NULL;
 }
 
@@ -296,8 +270,6 @@ NSMutableDictionary *allNotificationCategories = nil;  //these def need to be mu
  */
 - (UILocalNotification*) localNotificationWithId:(NSNumber*)id
 {
-    NSLog(@"\r\rDEBUG-LOG UIApplication+APPLocalNotification - localNotificationWithId\rLINE 185\r");
-
     NSArray* notifications = self.localNotifications;
 
     for (UILocalNotification* notification in notifications)
@@ -320,8 +292,6 @@ NSMutableDictionary *allNotificationCategories = nil;  //these def need to be mu
  */
 - (UILocalNotification*) localNotificationWithId:(NSNumber*)id andType:(APPLocalNotificationType)type
 {
-    NSLog(@"\r\rDEBUG-LOG UIApplication+APPLocalNotification - localNotificationWithId:andType\rLINE 207\r");
-
     UILocalNotification* notification = [self localNotificationWithId:id];
 
     if (notification && notification.type == type)
@@ -335,8 +305,6 @@ NSMutableDictionary *allNotificationCategories = nil;  //these def need to be mu
  */
 - (NSArray*) localNotificationOptions
 {
-    NSLog(@"\r\rDEBUG-LOG UIApplication+APPLocalNotification - localNotificationOptions\rLINE 220\r");
-
     NSArray* notifications = self.localNotifications;
     NSMutableArray* options = [[NSMutableArray alloc] init];
 
@@ -356,8 +324,6 @@ NSMutableDictionary *allNotificationCategories = nil;  //these def need to be mu
  */
 - (NSArray*) localNotificationOptionsByType:(APPLocalNotificationType)type
 {
-    NSLog(@"\r\rDEBUG-LOG UIApplication+APPLocalNotification -  localNotificationOptionsByType\rLINE 239\r");
-
     NSArray* notifications = self.localNotifications;
     NSMutableArray* options = [[NSMutableArray alloc] init];
 
@@ -379,8 +345,6 @@ NSMutableDictionary *allNotificationCategories = nil;  //these def need to be mu
  */
 - (NSArray*) localNotificationOptionsById:(NSArray*)ids
 {
-    NSLog(@"\r\rDEBUG-LOG UIApplication+APPLocalNotification - localNotificationOptionsById\rLINE 260\r");
-
     UILocalNotification* notification;
     NSMutableArray* options = [[NSMutableArray alloc] init];
 
@@ -406,8 +370,6 @@ NSMutableDictionary *allNotificationCategories = nil;  //these def need to be mu
  */
 - (NSArray*) localNotificationOptionsByType:(APPLocalNotificationType)type andId:(NSArray*)ids
 {
-    NSLog(@"\r\rDEBUG-LOG UIApplication+APPLocalNotification - localNotificationOptionsByType:andId\rLINE 285\r");
-
     UILocalNotification* notification;
     NSMutableArray* options = [[NSMutableArray alloc] init];
 
@@ -428,8 +390,6 @@ NSMutableDictionary *allNotificationCategories = nil;  //these def need to be mu
  */
 - (void) clearAllLocalNotifications
 {
-    NSLog(@"\r\rDEBUG-LOG UIApplication+APPLocalNotification - clearAllLocalNotifications\rLINE 305\r");
-
     NSArray* notifications = self.triggeredLocalNotifications;
 
     for (UILocalNotification* notification in notifications) {
@@ -445,8 +405,6 @@ NSMutableDictionary *allNotificationCategories = nil;  //these def need to be mu
  */
 - (void) clearLocalNotification:(UILocalNotification*)notification
 {
-    NSLog(@"\r\rDEBUG-LOG UIApplication+APPLocalNotification - clearLocalNotification\rLINE 320\r");
-
     [self cancelLocalNotification:notification];
 
     if ([notification isRepeating]) {

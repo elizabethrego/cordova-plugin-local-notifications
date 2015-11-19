@@ -41,8 +41,6 @@ NSInteger const APPLocalNotificationTypeTriggered = 2;
  */
 - (id) initWithOptions:(NSDictionary*)dict
 {
-    NSLog(@"\r\rDEBUG-LOG UILocalNotification+APPLocalNotification - initWithOptions\rLINE 42\r");
-
     self = [super init];
 
     [self setUserInfo:dict];
@@ -58,8 +56,6 @@ NSInteger const APPLocalNotificationTypeTriggered = 2;
  */
 - (void) __init
 {
-    NSLog(@"\r\rDEBUG-LOG UILocalNotification+APPLocalNotification - __init\rLINE 57\r");
-
     APPLocalNotificationOptions* options = self.options;
 
     self.fireDate = options.fireDate;
@@ -83,8 +79,6 @@ NSInteger const APPLocalNotificationTypeTriggered = 2;
  */
 - (APPLocalNotificationOptions*) options
 {
-    NSLog(@"\r\rDEBUG-LOG UILocalNotification+APPLocalNotification - options\rLINE 79\r");
-
     APPLocalNotificationOptions* options = [self getOptions];
 
     if (!options) {
@@ -92,7 +86,7 @@ NSInteger const APPLocalNotificationTypeTriggered = 2;
                    initWithDict:[self userInfo]];
 
         [self setOptions:options];
-    } 
+    }
 
     return options;
 }
@@ -102,8 +96,6 @@ NSInteger const APPLocalNotificationTypeTriggered = 2;
  */
 - (APPLocalNotificationOptions*) getOptions
 {
-    NSLog(@"\r\rDEBUG-LOG UILocalNotification+APPLocalNotification - getOptions\rLINE 96\r");
-
     return objc_getAssociatedObject(self, &optionsKey);
 }
 
@@ -112,8 +104,6 @@ NSInteger const APPLocalNotificationTypeTriggered = 2;
  */
 - (void) setOptions:(APPLocalNotificationOptions*)options
 {
-    NSLog(@"\r\rDEBUG-LOG UILocalNotification+APPLocalNotification - setOptions\rLINE 104\r");
-
     objc_setAssociatedObject(self, &optionsKey,
                              options, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
 }
@@ -123,8 +113,6 @@ NSInteger const APPLocalNotificationTypeTriggered = 2;
  */
 - (int) repeatIntervalInSeconds
 {
-    NSLog(@"\r\rDEBUG-LOG UILocalNotification+APPLocalNotification - repeatIntervalInSeconds\rLINE 113\r");
-
     switch (self.repeatInterval) {
         case NSCalendarUnitMinute:
             return 60;
@@ -148,8 +136,6 @@ NSInteger const APPLocalNotificationTypeTriggered = 2;
  */
 - (double) timeIntervalSinceFireDate
 {
-    NSLog(@"\r\rDEBUG-LOG UILocalNotification+APPLocalNotification - timeIntervalSinceFireDate\rLINE 136\r");
-
     NSDate* now      = [NSDate date];
     NSDate* fireDate = self.fireDate;
 
@@ -163,8 +149,6 @@ NSInteger const APPLocalNotificationTypeTriggered = 2;
  */
 - (double) timeIntervalSinceLastTrigger
 {
-    NSLog(@"\r\rDEBUG-LOG UILocalNotification+APPLocalNotification - timeIntervalSinceLastTrigger\rLINE 149\r");
-
     int timespan = [self timeIntervalSinceFireDate];
 
     if ([self isRepeating]) {
@@ -179,8 +163,6 @@ NSInteger const APPLocalNotificationTypeTriggered = 2;
  */
 - (NSString*) encodeToJSON
 {
-    NSLog(@"\r\rDEBUG-LOG UILocalNotification+APPLocalNotification - encodeToJSON\rLINE 163\r");
-
     NSString* json;
     NSData* data;
     NSMutableDictionary* obj = [self.userInfo mutableCopy];
@@ -206,16 +188,12 @@ NSInteger const APPLocalNotificationTypeTriggered = 2;
  */
 - (BOOL) wasInThePast
 {
-    NSLog(@"\r\rDEBUG-LOG UILocalNotification+APPLocalNotification - wasInThePast\rLINE 188\r");
-
     return [self timeIntervalSinceLastTrigger] > 0;
 }
 
 // If the notification was already scheduled
 - (BOOL) isScheduled
 {
-    NSLog(@"\r\rDEBUG-LOG UILocalNotification+APPLocalNotification - isScheduled\rLINE 194\r");
-
     return [self isRepeating] || ![self wasInThePast];
 }
 
@@ -224,8 +202,6 @@ NSInteger const APPLocalNotificationTypeTriggered = 2;
  */
 - (BOOL) isTriggered
 {
-    NSLog(@"\r\rDEBUG-LOG UILocalNotification+APPLocalNotification - isTriggered\rLINE 202\r");
-
     NSDate* now      = [NSDate date];
     NSDate* fireDate = self.fireDate;
 
@@ -239,8 +215,6 @@ NSInteger const APPLocalNotificationTypeTriggered = 2;
  */
 - (BOOL) wasUpdated
 {
-    NSLog(@"\r\rDEBUG-LOG UILocalNotification+APPLocalNotification - wasUpdated\rLINE 215\r");
-
     NSDate* now       = [NSDate date];
     NSDate* updatedAt = [self.userInfo objectForKey:@"updatedAt"];
 
@@ -257,8 +231,6 @@ NSInteger const APPLocalNotificationTypeTriggered = 2;
  */
 - (BOOL) isRepeating
 {
-    NSLog(@"\r\rDEBUG-LOG UILocalNotification+APPLocalNotification - isRepeating\rLINE 231\r");
-
     return [self.options isRepeating];
 }
 
@@ -267,8 +239,6 @@ NSInteger const APPLocalNotificationTypeTriggered = 2;
  */
 - (APPLocalNotificationType) type
 {
-    NSLog(@"\r\rDEBUG-LOG UILocalNotification+APPLocalNotification - type\rLINE 239\r");
-
     return [self isTriggered] ? NotifcationTypeTriggered : NotifcationTypeScheduled;
 }
 
