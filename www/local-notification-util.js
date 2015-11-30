@@ -39,6 +39,7 @@ exports._defaults = {
     data:  undefined,
     every: undefined,
     at:    undefined,
+    actions: undefined,
     category: undefined
 };
 
@@ -171,6 +172,46 @@ exports.convertProperties = function (options) {
 
     return options;
 };
+
+/**
+ * Convert the passed values to their required type, modifying them
+ * directly for Android and passing the converted list back for iOS.
+ *
+ * @param {Object} options
+ *      Set of custom values
+ *
+ * @return {Object}
+ *      The prepared interaction object w/ category & actions
+ */
+exports.prepareActions = function (options) {
+    var MAX_ACTIONS;
+
+    if (device.platform === 'iOS') {
+        MAX_ACTIONS = 4;
+    } else {
+        MAX_ACTIONS = 3;
+    }
+
+    if (options.category && options.actions) {
+        var interaction = { 
+            category: options.category, 
+            actions: [] 
+        };
+
+        for (var i = 0; i < options.actions.length && MAX_ACTIONS > 0; i++) {
+            if (options.actions[i].identifier) {
+                interaction.actions.push(options.actions[i]);
+                MAX_ACTIONS--;
+            } else {
+                console.warn('Action with title ' + options.actions[i].title 
+                    + ' has no identifier and will not be added.');
+            }
+        }
+
+        options.actions = interaction.actions;
+        return interaction;
+    }
+}
 
 /**
  * Create callback, which will be executed within a specific scope.
