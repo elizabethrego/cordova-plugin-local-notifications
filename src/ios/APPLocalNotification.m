@@ -657,11 +657,6 @@
                selector:@selector(handleNotificationAction:)
                    name:@"SendActionIdentifier"
                  object:nil];
-
-    [center addObserver:self
-               selector:@selector(handleNotificationActionWithResponseInfo:)
-                   name:@"SendActionIdentifierWithResponseInfo"
-                 object:nil];
 }
 
 /**
@@ -741,7 +736,7 @@
 
         if (data) {
             params = [NSString stringWithFormat:
-                  @"%@,'%@','%@'",
+                  @"%@,'%@',%@",
                   args, self.applicationState, data];
         } else {
             params = [NSString stringWithFormat:
@@ -766,33 +761,26 @@
  */
  - (void) handleNotificationAction:(NSNotification*)notification
  {
-    NSString* identifier = [notification object];
+     NSString* identifier = [notification object];
+     
+     NSDictionary* userInfo = notification.userInfo;
+     UILocalNotification *localNotification = [userInfo objectForKey:@"localNotification"];
+     
+     NSDictionary* responseInfo = [userInfo objectForKey:@"responseInfo"];
+     
+     NSDictionary* dataDict = [NSDictionary dictionaryWithObjectsAndKeys:identifier, @"identifier",
+                               [responseInfo objectForKey:@"UIUserNotificationActionResponseTypedTextKey"], @"responseInfoText", nil];
+     NSData* jsonData = [NSJSONSerialization dataWithJSONObject:dataDict options:0 error:nil];
+     NSString* data = [[NSString alloc] initWithData:jsonData encoding:NSUTF8StringEncoding];
+     
+     [self fireEvent:@"action" notification:localNotification data:data];
 
-    NSDictionary* userInfo = notification.userInfo;
-    UILocalNotification *localNotification = [userInfo objectForKey:@"localNotification"];
-
-    [self fireEvent:@"action" notification:localNotification data:identifier];
- }
-
-  /**
- * Get notification identifier to send to JS.
- */
- - (void) handleNotificationActionWithResponseInfo:(NSNotification*)notification
- {
-    NSString* identifier = [notification object];
-
-    NSDictionary* userInfo = notification.userInfo;
-
-    NSDictionary* responseInfo = [userInfo objectForKey:@"responseInfo"];
-    NSDictionary* dataDict = [NSDictionary dictionaryWithObjectsAndKeys:identifier, @"identifier", 
-        [responseInfo objectForKey:@"UIUserNotificationActionResponseTypedTextKey"], @"responseInfoText", nil];
-    NSData* jsonData = [NSJSONSerialization dataWithJSONObject:dataDict options:0 error:nil];
-    NSString *data = [[NSString alloc] initWithData:jsonData encoding:NSUTF8StringEncoding];
-
-
-    UILocalNotification *localNotification = [userInfo objectForKey:@"localNotification"];
-
-    [self fireEvent:@"action" notification:localNotification data:data];
+     if ([localNotification isRepeating]) {
+        [self fireEvent:@"clear" notification:localNotification];
+    } else {
+        [self.app cancelLocalNotification:localNotification];
+        [self fireEvent:@"cancel" notification:localNotification];
+    }
  }
 
 @end

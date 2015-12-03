@@ -9,10 +9,10 @@
 
  @interface AppDelegate (APPLocalNotificationAction)
 
-// Handle notification actions
+// Handle notification actions for iOS < 9
  - (void) application:(UIApplication *)application handleActionWithIdentifier:(NSString *)identifier forLocalNotificiation:(UILocalNotification *)notification completionHandler:(void(^)())completionHandler;
 
-// Handle notification actions with response info
- - (void)application:(UIApplication *)application handleActionWithIdentifier:(NSString *)identifier forLocalNotification:(UILocalNotification *)notification withResponseInfo:(NSDictionary *)responseInfo completionHandler:(void (^)())completionHandler;   
+//  Handle notification actions with optional response info for iOS >= 9
+ - (void) application:(UIApplication *)application handleActionWithIdentifier:(NSString *)identifier forLocalNotification:(UILocalNotification *)notification withResponseInfo:(NSDictionary *)responseInfo completionHandler:(void (^)())completionHandler;   
 
  @end

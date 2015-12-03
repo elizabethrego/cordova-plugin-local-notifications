@@ -98,31 +98,29 @@ NSMutableDictionary *allNotificationCategories = nil;
             for (NSString* interaction in interactions)
             {
                 NSData* interactionsData = [interaction dataUsingEncoding:NSUTF8StringEncoding];
-                NSDictionary* interactionsArray = [NSJSONSerialization JSONObjectWithData:interactionsData options:NSJSONReadingMutableContainers error:nil];
+                NSDictionary* interactionsDict = [NSJSONSerialization JSONObjectWithData:interactionsData options:NSJSONReadingMutableContainers error:nil];
 
-                NSArray* actions = [interactionsArray objectForKey:@"actions"];
-                NSString* category = [interactionsArray objectForKey:@"category"];
+                NSArray* actions = [interactionsDict objectForKey:@"actions"];
+                NSString* category = [interactionsDict objectForKey:@"category"];
                 
-                // Redundant: already checking in local-notification-core.js
                 if ([actions count] && category.length) {
-                    if (![allNotificationCategories objectForKey:category]) // category doesn't already exist
+                    if (![allNotificationCategories objectForKey:category]) 
                     {
                         UIMutableUserNotificationCategory* newCategory;
                         newCategory = [[UIMutableUserNotificationCategory alloc] init];
                         [newCategory setIdentifier:category];
                         
-                        NSMutableArray* actionsArray; // should be array
+                        NSMutableArray* actionsArray;
                         actionsArray = [[NSMutableArray alloc] init];
                         
                         for (NSDictionary* action in actions)
                         {
-                            // don't break the app if the action is invalid, just don't add the action
                             if ([action isKindOfClass:[NSDictionary class]])
                             {
                                 NSString* actionIdent = [action objectForKey:@"identifier"];
                                 UIMutableUserNotificationAction* existingAction = [allNotificationActions objectForKey:actionIdent];
-                                if (!existingAction) 
-                                {
+
+                                if (!existingAction) {
                                     UIMutableUserNotificationAction* newAction = [[UIMutableUserNotificationAction alloc] init];
                                     [newAction setActivationMode:[[action objectForKey:@"activationMode"]  isEqual: @"background"]
                                         ? UIUserNotificationActivationModeBackground : UIUserNotificationActivationModeForeground];
@@ -130,11 +128,13 @@ NSMutableDictionary *allNotificationCategories = nil;
                                     [newAction setIdentifier:actionIdent];
                                     [newAction setDestructive:[[action objectForKey:@"destructive"] boolValue]];
                                     [newAction setAuthenticationRequired:[[action objectForKey:@"authenticationRequired"] boolValue]];
-                                    [newAction setBehavior:[[action objectForKey:@"behavior"]  isEqual: @"textInput"]
-                                        ? UIUserNotificationActionBehaviorTextInput : UIUserNotificationActionBehaviorDefault];
-                                    if ([action objectForKey:@"textInputSendTitle"]) {
-                                        [newAction setParameters:[NSDictionary dictionaryWithObject:[action objectForKey:@"textInputSendTitle"]
-                                                                                             forKey:UIUserNotificationTextInputActionButtonTitleKey]];
+                                    if ([newAction respondsToSelector:@selector(setBehavior:)]) {
+                                        [newAction setBehavior:[[action objectForKey:@"behavior"]  isEqual: @"textInput"]
+                                            ? UIUserNotificationActionBehaviorTextInput : UIUserNotificationActionBehaviorDefault];
+                                        if ([action objectForKey:@"textInputSendTitle"]) {
+                                            [newAction setParameters:[NSDictionary dictionaryWithObject:[action objectForKey:@"textInputSendTitle"]
+                                                                                                 forKey:UIUserNotificationTextInputActionButtonTitleKey]];
+                                        }
                                     }
                                 
                                     [allNotificationActions setObject:newAction forKey:actionIdent];
@@ -144,8 +144,7 @@ NSMutableDictionary *allNotificationCategories = nil;
                             }
                         }
                         
-                        if ([actionsArray count] > 2)
-                        {
+                        if ([actionsArray count] > 2) {
                             [newCategory setActions:@[[actionsArray objectAtIndex:1], [actionsArray objectAtIndex:0]] forContext:UIUserNotificationActionContextMinimal];
                         } else {
                             [newCategory setActions:[[actionsArray reverseObjectEnumerator] allObjects] forContext:UIUserNotificationActionContextMinimal];
