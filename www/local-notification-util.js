@@ -211,7 +211,7 @@ exports.prepareActions = function (options) {
         options.actions = interaction.actions;
         return interaction;
     }
-}
+};
 
 /**
  * Create callback, which will be executed within a specific scope.

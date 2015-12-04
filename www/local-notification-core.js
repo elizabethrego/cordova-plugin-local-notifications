@@ -408,6 +408,8 @@ exports.hasPermission = function (callback, scope) {
 /**
  * Register permission to show notifications if not already granted.
  *
+ * @param {Object} interactions
+ *      Category and all actions for iOS
  * @param {Function} callback
  *      The function to be exec as the callback
  * @param {Object?} scope

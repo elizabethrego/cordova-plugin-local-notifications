@@ -29,9 +29,9 @@ import android.content.Intent;
 import android.net.Uri;
 import android.support.v4.app.NotificationCompat;
 
+import org.json.JSONException;
 import org.json.JSONObject;
 import org.json.JSONArray;
-import org.json.JSONException;
 
 import java.util.Random;
 
@@ -221,4 +221,5 @@ public class Builder {
 
         return pendingIntent;
     }
+
 }

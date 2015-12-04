@@ -41,7 +41,7 @@ NSInteger const APPLocalNotificationTypeTriggered = 2;
  */
 - (id) initWithOptions:(NSDictionary*)dict
 {
-    self = [super init];
+    self = [self init];
 
     [self setUserInfo:dict];
     [self __init];
@@ -61,10 +61,10 @@ NSInteger const APPLocalNotificationTypeTriggered = 2;
     self.fireDate = options.fireDate;
     self.timeZone = [NSTimeZone defaultTimeZone];
     self.applicationIconBadgeNumber = options.badgeNumber;
+    self.category = options.category;
     self.repeatInterval = options.repeatInterval;
     self.alertBody = options.alertBody;
     self.soundName = options.soundName;
-    self.category = options.category;
 
     if ([self wasInThePast]) {
         self.fireDate = [NSDate date];
