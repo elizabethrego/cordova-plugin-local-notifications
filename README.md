@@ -109,7 +109,7 @@ $window.cordova.plugins.notification.local.on('action', function (notification, 
 Then in your app, you can capture the event like this:
 
 ```javascript
-$rootScope.$on('$cordovaLocalNotification:action', function(notification, state, data) {
+$rootScope.$on('$cordovaLocalNotification:action', function(event, notification, state, data) {
     // use conditionals to choose actions to take like above, blah blah
 });
 ```
