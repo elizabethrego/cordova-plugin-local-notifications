@@ -1,6 +1,8 @@
+**NOTE: This is totally outdated, but it'll work fine until Katzer releases 0.9 (where my updated changes have been merged). **
+
 Cordova Local-Notification Plugin (NOW WITH NOTIFICATION ACTIONS!)
 =================================
-** Disclaimer: This was forked from <a href="https://github.com/willyboy/cordova-plugin-local-notifications">willyboy's repo</a>, which was forked from <a href="https://github.com/NorthMcCormick/cordova-plugin-local-notifications">NorthMcCormick's</a>, which of course was forked from <a href="https://github.com/katzer/cordova-plugin-local-notifications">Katzer's</a>. Working now to get my changed merged into Katzer's. **
+** Disclaimer: This was forked from <a href="https://github.com/willyboy/cordova-plugin-local-notifications">willyboy's repo</a>, which was forked from <a href="https://github.com/NorthMcCormick/cordova-plugin-local-notifications">NorthMcCormick's</a>, which of course was forked from <a href="https://github.com/katzer/cordova-plugin-local-notifications">Katzer's</a>. **
 
 You can scroll below or visit any of the repos linked above to see general usage docs, but here I'll show you how to add interactive notifications to your iOS or Android app.
 
