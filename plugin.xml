@@ -128,7 +128,7 @@
             <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
         </config-file>
 
-        <lib-file src="libs/android/android-support-v4.jar" />
+        <framework src="com.android.support:support-v4:+" />
 
         <source-file
             src="src/android/LocalNotification.java"
