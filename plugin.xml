@@ -51,7 +51,7 @@
 
     <!-- ios -->
     <platform name="ios">
-        <dependency id="de.appplant.cordova.common.registerusernotificationsettings" />
+        <dependency id="cordova-plugin-registerusernotificationsettings" />
         <config-file target="config.xml" parent="/*">
             <feature name="LocalNotification">
                 <param name="ios-package" value="APPLocalNotification" onload="true" />
@@ -128,7 +128,7 @@
             <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
         </config-file>
 
-        <lib-file src="libs/android/android-support-v4.jar" />
+        <framework src="com.android.support:support-v4:+" />
 
         <source-file
             src="src/android/LocalNotification.java"
