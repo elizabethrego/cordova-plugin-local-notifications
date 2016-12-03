@@ -12,7 +12,10 @@
 /**
  * Handle notification actions for iOS < 9.
  */
- - (void) application:(UIApplication *)application handleActionWithIdentifier:(NSString *)identifier forLocalNotificiation:(UILocalNotification *)notification completionHandler:(void(^)())completionHandler;
+- (void)            application:(UIApplication *)application
+     handleActionWithIdentifier:(NSString *)identifier
+           forLocalNotification:(UILocalNotification *)notification
+              completionHandler:(void (^)(void))completionHandler
  {
  	NSDictionary *userInfo = [NSDictionary dictionaryWithObject:notification forKey:@"localNotification"];
     [[NSNotificationCenter defaultCenter] postNotificationName:@"SendActionIdentifier" object:identifier userInfo:userInfo];
